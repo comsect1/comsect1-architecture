@@ -1,0 +1,85 @@
+comsect1 ARCHITECTURE - DUAL LICENSE
+
+This repository contains two types of content with different licenses:
+
+================================================================================
+1. SPECIFICATION DOCUMENTS (CC BY-NC-ND 4.0)
+================================================================================
+
+The following files are licensed under Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0):
+
+- README.md
+- CLAUDE.md
+- specs/*.md (All specification files)
+- guides/**/*.md (All guide files)
+
+You are free to:
+- Share: Copy and redistribute the material in any medium or format
+
+Under the following terms:
+- Attribution: You must give appropriate credit, provide a link to the license,
+  and indicate if changes were made.
+- NonCommercial: You may not use the material for commercial purposes.
+- NoDerivatives: If you remix, transform, or build upon the material, you may
+  not distribute the modified material.
+
+Full license text: https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+IMPORTANT CLARIFICATION:
+--------------------------------------------------------------------------------
+This license applies ONLY to the specification documents themselves.
+
+The following activities are NOT restricted by this license:
+- Implementing software based on this architecture
+- Creating projects that follow comsect1 principles
+- Producing code, products, or services inspired by this architecture
+- Using the architectural concepts in your own work
+
+Your implementations, code, and projects created based on this architecture
+are entirely your own. The author makes no copyright claim over any
+implementation or derivative work that applies these architectural principles.
+
+The CC BY-NC-ND restriction applies solely to:
+- Redistributing modified versions of this specification document
+- Creating and distributing altered versions of the architecture documentation
+- Using the specification documents for commercial purposes
+
+In short: Use the architecture freely. Just don't modify, commercially exploit,
+or redistribute the specification documents themselves.
+--------------------------------------------------------------------------------
+
+================================================================================
+2. SCRIPTS AND TEMPLATES (MIT License)
+================================================================================
+
+The following files are licensed under the MIT License:
+
+- scripts/*.py
+
+MIT License
+
+Copyright (c) 2025 Kim Hyeongjeong
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+Author: Kim Hyeongjeong (Republic of Korea)
+================================================================================
+

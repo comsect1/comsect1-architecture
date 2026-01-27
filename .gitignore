@@ -1,0 +1,24 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Local agent settings
+.claude/
+
+# Gate reports (generated per-run)
+.aiad-gate-report.json
+tmp_code_verify_check.json
+
