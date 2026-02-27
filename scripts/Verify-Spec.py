@@ -113,6 +113,79 @@ def main() -> int:
                         f"specs/{spec_file.name}:{first[0]} ('{first[1].strip()}')",
                     )
 
+    # SSOT term consistency: detect use of inf_ as an actual file-role prefix
+    # in code examples or file references (not in rules that forbid it).
+    # Matches inf_<word>.<ext> used as a filename, excluding inline code backticks
+    # where the spec is explaining "do not use inf_".
+    inf_file_usage_re = re.compile(r"(?<!`)inf_\w+\.(?:c|h|py|cs|vb)\b")
+
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        in_code_block = False
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+            if stripped.startswith("#") or stripped.startswith(">"):
+                continue
+            if inf_file_usage_re.search(line):
+                add_issue(
+                    issues,
+                    f"SSOT term: specs/{spec_file.name}:{line_no} — "
+                    f"inf_ file-role prefix used in example (§2.7.8: inf_ is forbidden)",
+                )
+
+    # Cross-reference validation: verify §X.Y and Section X.Y references
+    # Build heading registry from all spec files
+    section_heading_re = re.compile(
+        r"^#{1,6}\s+(?:(?P<major>\d+)\.(?P<minor>\d+(?:\.\d+)*)?)\s",
+    )
+    # Also match "Appendix X." headings
+    appendix_heading_re = re.compile(
+        r"^#{1,6}\s+Appendix\s+(?P<letter>[A-Z])(?P<minor>\d+)?\.?\s",
+    )
+    known_sections: set[str] = set()
+
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        for line in text.splitlines():
+            m = section_heading_re.match(line)
+            if m:
+                major = m.group("major")
+                minor = m.group("minor")
+                if minor:
+                    known_sections.add(f"{major}.{minor}")
+                known_sections.add(major)
+                continue
+            m = appendix_heading_re.match(line)
+            if m:
+                letter = m.group("letter")
+                app_minor = m.group("minor")
+                if app_minor:
+                    known_sections.add(f"A{app_minor}")
+                known_sections.add(f"Appendix {letter}")
+
+    # Scan for cross-references: §X.Y, Section X.Y, §X
+    xref_re = re.compile(r"(?:§|Section\s+)(\d+(?:\.\d+)*)")
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            # Skip lines that define headings (they are definitions, not references)
+            if line.lstrip().startswith("#"):
+                continue
+            for m in xref_re.finditer(line):
+                ref = m.group(1)
+                # Check if the major section exists
+                major_part = ref.split(".")[0]
+                if major_part not in known_sections and ref not in known_sections:
+                    add_issue(
+                        issues,
+                        f"Broken cross-reference '§{ref}': specs/{spec_file.name}:{line_no}",
+                    )
+
     # Lightweight README hygiene checks
     if readme_path.is_file():
         readme = get_file_text_utf8(readme_path)

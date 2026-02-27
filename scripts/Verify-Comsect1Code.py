@@ -138,6 +138,84 @@ def test_is_same_feature_include(
     return test_is_same_feature_header(leaf=leaf, prefix=prefix, feature=feature)
 
 
+MIN_IDA_LINES = 10
+DOMAIN_CONDITIONAL_RE = re.compile(
+    r"\b(?:if|switch|case)\b.*\b(?:mode|state|status|level|type|flag|enable|disable|active|threshold)\b",
+    re.IGNORECASE,
+)
+
+COMMENT_LINE_RE = re.compile(r"^\s*(?://|/\*|\*|\*/)")
+BLANK_LINE_RE = re.compile(r"^\s*$")
+
+
+def count_code_lines(path: Path) -> int:
+    """Count non-blank, non-comment lines in a C source file."""
+    count = 0
+    in_block_comment = False
+    try:
+        with path.open("r", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                stripped = line.strip()
+                if in_block_comment:
+                    if "*/" in stripped:
+                        in_block_comment = False
+                    continue
+                if stripped.startswith("/*") and "*/" not in stripped[2:]:
+                    in_block_comment = True
+                    continue
+                if BLANK_LINE_RE.match(stripped) or COMMENT_LINE_RE.match(stripped):
+                    continue
+                if stripped.startswith("#"):  # preprocessor directives don't count as logic
+                    continue
+                count += 1
+    except OSError:
+        pass
+    return count
+
+
+def verify_red_flags(
+    source_files: list[Path],
+    findings: list[dict[str, object]],
+) -> None:
+    """Advisory-level Red Flag heuristic checks (§11.8)."""
+    for file in source_files:
+        if file.suffix.lower() != ".c":
+            continue
+        role, _ = get_role_info(file.name)
+
+        # Red Flag: Empty Idea
+        if role == "idea":
+            code_lines = count_code_lines(file)
+            if code_lines < MIN_IDA_LINES:
+                add_finding(
+                    findings,
+                    "warning",
+                    str(file),
+                    0,
+                    "red-flag-empty-idea",
+                    f"ida_ source has only {code_lines} code lines (threshold: {MIN_IDA_LINES}). "
+                    "Verify that domain judgment is present, not just pass-through calls.",
+                )
+
+        # Red Flag: Fat Poiesis
+        if role == "poiesis":
+            try:
+                text = file.read_text(encoding="utf-8", errors="replace")
+                domain_hits = DOMAIN_CONDITIONAL_RE.findall(text)
+                if domain_hits:
+                    add_finding(
+                        findings,
+                        "warning",
+                        str(file),
+                        0,
+                        "red-flag-fat-poiesis",
+                        f"poi_ source contains {len(domain_hits)} domain-meaningful conditional(s). "
+                        "Consider moving domain logic to ida_ or prx_.",
+                    )
+            except OSError:
+                pass
+
+
 def collect_source_files(root: Path) -> list[Path]:
     files: list[Path] = []
     for p in root.rglob("*"):
@@ -465,12 +543,20 @@ def main() -> int:
                 if is_forbidden_platform_include:
                     err(str(file), line_no, "platform.include", f"Platform must not include upper-layer/resource/module headers: {include_path}")
 
+    # Stage: Red Flag heuristics (advisory only)
+    verify_red_flags(source_files, findings)
+
     errors = [f for f in findings if f["Severity"] == "error"]
+    warnings = [f for f in findings if f["Severity"] == "warning"]
 
     print(f"comsect1 code verification complete: {root_path}")
     print(f"Errors: {len(errors)}")
+    if warnings:
+        print(f"Warnings (advisory): {len(warnings)}")
     for e in sorted(errors, key=lambda item: (str(item["File"]), int(item["Line"]), str(item["Rule"]))):
         print(f"- {e['File']}:{e['Line']} [{e['Rule']}] {e['Message']}")
+    for w in sorted(warnings, key=lambda item: (str(item["File"]), int(item["Line"]), str(item["Rule"]))):
+        print(f"  (advisory) {w['File']}:{w['Line']} [{w['Rule']}] {w['Message']}")
 
     if args.json_out:
         report = {

@@ -210,7 +210,7 @@ Rules:
 
 ### 4.2.1 Overview
 
-Shared **capability** components are consumed by PRX/POI and live under `/infra/*`.
+Shared **capability** components are consumed by PRX/POI and live under `/infra/*` or `/deps/*` depending on their role (see Section 8.2 for canonical locations).
 
 Capability types:
 - Middleware (`mdw_`)

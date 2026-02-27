@@ -121,7 +121,7 @@ comsect1 separates five axes. Mixing them creates ambiguity.
 | **Domain** | responsibility boundary | Project domain, Infra capability domain, Dependency repository domain |
 | **Layout** | physical folder conventions | `/project`, `/infra/bootstrap`, `/infra/service`, `/infra/platform`, `/deps` |
 | **Design Pattern** | repeatable implementation structure | idea-praxis-poiesis |
-| **Execution Plane** | runtime interaction boundary | data plane (`stm_`) vs capability plane (`mdw_`, `svc_`, `hal_`, `bsp_`) |
+| **Execution Plane** | runtime interaction boundary | data plane (`stm_`) vs capability plane (`mdw_`, `svc_`, `hal_`, `bsp_`, core execution wrappers) |
 
 ### 2.7.2 Architecture layers (the 3-layer concept)
 
@@ -235,6 +235,17 @@ Rules:
 - Feature-to-capability calls are allowed from Praxis/Poiesis (and core execution scope).
 - Capability components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
 - Prefixes remain role-based; do not introduce `inf_` prefix as an architectural role marker.
+
+### 2.7.9 OOP language mapping
+
+comsect1 rules are language-agnostic (Section 1.2). When applied to object-oriented languages, the following mappings hold:
+
+- `.c/.h` compilation unit → class in a single source file
+- `#include` dependency → `import`/`using`/`Imports` statement, constructor parameter, or interface reference
+- Function-pointer interface struct → interface or abstract class
+- File-scope `static` variables → instance state belongs in Praxis/Poiesis; Idea remains stateless
+
+For the complete OOP adaptation guide including layer-to-class mapping, OOP-specific anti-patterns, and gate verification requirements, see **Appendix B (A2)**.
 
 ---
 

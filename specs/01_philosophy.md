@@ -234,6 +234,12 @@ Alignment points:
   - dependency rules are selective permeability constraints, not isolation for its own sake.
 - **Flow vs dependency inversion**:
   - business meaning flows downward through execution while dependency direction remains upward toward intent purity.
+- **Gaze**:
+  - the diagnostic act of tracing dependencies upward to understand structural alignment. In comsect1, this manifests as comprehension through dependency direction — following `ida_` → `prx_` → `poi_` → infrastructure to verify intent propagation (§1.1.2).
+- **Grain**:
+  - structure's purpose physically expressed as texture. In comsect1, Grain appears as the folder layout (§7), naming conventions (§8), and role prefixes — the visible, tactile surface of architectural intent.
+- **Perturbation**:
+  - evolutionary pressure that causes layers to differentiate. The 3-layer model (Idea/Praxis/Poiesis) is not an arbitrary division; it is the fossil record of perturbation — external coupling forces that demanded structural separation. The PRX/POI split (§12) is a concrete example: audit-discovered heterogeneity forced explicit role differentiation.
 - **Great Alignment**:
   - architecture quality is judged by continuity of alignment, not by static completion.
 

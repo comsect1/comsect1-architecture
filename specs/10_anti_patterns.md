@@ -105,6 +105,36 @@ Core execution (`poi_core` by default) must not include HAL/BSP directly when pl
 
 ---
 
+## 10.8 OOP-Specific Anti-patterns
+
+The following anti-patterns apply when comsect1 is used with object-oriented languages. For the full treatment, see **Appendix B (A2)**.
+
+### 10.8.1 Reverse Dependency via Inheritance
+
+**Violation:** dependency direction (Section 2.7.3).
+
+Praxis or Poiesis class inherits from Idea class, creating an implicit upward dependency.
+
+Correct: use composition. Idea calls Praxis/Poiesis; it does not extend them.
+
+### 10.8.2 Idea Holding Mutable State
+
+**Violation:** Idea purity.
+
+Idea class declares mutable instance fields. Stateful Idea introduces temporal coupling.
+
+Correct: Idea methods are static/shared. State belongs in `cfg_`/`db_`/`stm_` or Praxis/Poiesis.
+
+### 10.8.3 God-Class (Layer Collapse)
+
+**Violation:** layer role clarity (Section 10.4).
+
+A single class mixes UI handling, domain logic, external API calls, and state management.
+
+Correct: apply the 3-Question Discriminator (Section 2.3) to decompose into `ida_`/`prx_`/`poi_`.
+
+---
+
 ## License
 
 This document is part of the **comsect1 Architecture Specification v1.0.0**.
