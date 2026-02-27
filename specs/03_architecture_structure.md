@@ -1,4 +1,4 @@
-﻿# 3. Architecture Structure
+# 3. Architecture Structure
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Domain**: Project, Infra Capability, Dependency Repository
@@ -107,27 +107,27 @@ For normative constraints:
 Illustrative example:
 
 ```c
-/* ida_motor.c */
-void Ida_Motor_Run(void)
+/* ida_sensor.c */
+void Ida_Sensor_Run(void)
 {
-    if (target_mode == MOTOR_MODE_ECO) {
-        Prx_Motor_InterpretAndApply(target_mode);
+    if (target_mode == SENSOR_MODE_ECO) {
+        Prx_Sensor_InterpretAndApply(target_mode);
     } else {
-        Poi_Motor_ApplyDuty(target_duty);
+        Poi_Sensor_ApplyDuty(target_duty);
     }
 }
 
-/* prx_motor.c */
-Result_t Prx_Motor_InterpretAndApply(MotorMode_t mode)
+/* prx_sensor.c */
+Result_t Prx_Sensor_InterpretAndApply(SensorMode_t mode)
 {
-    uint8_t duty = (mode == MOTOR_MODE_ECO) ? db_motor_eco_duty : db_motor_normal_duty;
-    return Poi_Motor_ApplyDuty(duty);
+    uint8_t duty = (mode == SENSOR_MODE_ECO) ? db_sensor_eco_duty : db_sensor_normal_duty;
+    return Poi_Sensor_ApplyDuty(duty);
 }
 
-/* poi_motor.c */
-Result_t Poi_Motor_ApplyDuty(uint8_t duty)
+/* poi_sensor.c */
+Result_t Poi_Sensor_ApplyDuty(uint8_t duty)
 {
-    return Hal_Pwm_SetDuty(MOTOR_PWM_CHANNEL, duty);
+    return Hal_Pwm_SetDuty(SENSOR_PWM_CHANNEL, duty);
 }
 ```
 

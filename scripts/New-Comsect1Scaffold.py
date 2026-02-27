@@ -69,6 +69,7 @@ def main() -> int:
     root_path.mkdir(parents=True, exist_ok=True)
 
     relative_dirs = [
+        "api",
         "project",
         "project/config",
         "project/datastreams",

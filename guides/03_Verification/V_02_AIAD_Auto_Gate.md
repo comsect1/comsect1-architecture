@@ -24,14 +24,24 @@ Script:
 
 Checks:
 - spec file naming/numbering consistency
-- basic section hygiene and encoding checks
+- basic section hygiene and UTF-8 without BOM encoding checks
 
 ### 2.2 Code Architecture Gate
+
+**C/embedded projects:**
 
 Script:
 - `scripts/Verify-Comsect1Code.py`
 
+**OOP projects (C#, VB.NET, Java):**
+
+Script:
+- `scripts/Verify-OOPCode.py`
+
+The unified runner (`Verify-AIADGate.py`) auto-detects the project type and activates the appropriate gate.
+
 Checks (3-layer aware):
+- dedicated `/comsect1` root boundary (Section 7.2 Root Folder Convention)
 - include/dependency direction
 - IDA/PRX/POI role boundary rules
 - module/platform reverse dependency violations
@@ -42,13 +52,29 @@ Conformance enforcement:
 - All normative rules are enforced without relaxation profiles.
 - Legacy folder layouts are detected and reported as errors.
 
-### 2.3 Unified Runner
+### 2.3 Tooling Consistency Gate
+
+Script:
+- `scripts/Verify-ToolingConsistency.py`
+
+Checks:
+- generated AI tooling surfaces still match `scripts/comsect1_ai_tooling.py`
+- generated blocks inside `tooling/INSTALL.md` still match `scripts/comsect1_ai_tooling.py`
+- thin adapters, skills, and install/bootstrap wrappers have not drifted
+
+Use this gate when changing:
+- `AGENTS.md`, `CLAUDE.md`
+- tool-specific skills, reviewers, and rules files
+- install/bootstrap wrapper scripts under `tooling/`
+- generated sections inside `tooling/INSTALL.md`
+
+### 2.4 Unified Runner
 
 Script:
 - `scripts/Verify-AIADGate.py`
 
 Behavior:
-- runs spec gate and code gate
+- runs spec gate, tooling consistency gate, and code/OOP gates as applicable
 - aggregates stage status
 - writes JSON report
 - exits non-zero on failure
@@ -63,7 +89,7 @@ Behavior:
 python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1 -ReportPath .aiad-gate-report.json
 ```
 
-### 3.2 Spec-only
+### 3.2 Spec + Tooling Only
 
 ```powershell
 python scripts/Verify-AIADGate.py -SkipCode -ReportPath .aiad-gate-report.json

@@ -1,4 +1,4 @@
-﻿# 6. Error Handling and Return Types
+# 6. Error Handling and Return Types
 
 > **Terminology:** This section uses terms from **Section 2.7 SSOT**.
 

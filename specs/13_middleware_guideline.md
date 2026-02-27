@@ -1,4 +1,4 @@
-﻿# 13. Middleware Integration Guideline
+# 13. Middleware Integration Guideline
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 
@@ -24,7 +24,7 @@ Middleware is a reusable module that encapsulates complex integration logic:
 
 Examples:
 - `mdw_os`, `mdw_scheduler`
-- `mdw_can`, `mdw_lin`
+- `mdw_serial`, `mdw_comm`
 - `mdw_storage`
 
 ---
@@ -44,7 +44,7 @@ Correct pattern:
 
 ```c
 /* Anti-pattern */
-#include "mdw_can.h"   /* in ida_main.c: forbidden */
+#include "mdw_serial.h"   /* in ida_main.c: forbidden */
 
 /* Correct */
 #include "prx_main.h"   /* or poi_main.h */
@@ -68,40 +68,89 @@ Configuration is injected by `prx_`/`poi_` at init/runtime.
 
 ## 13.4 Internal Structure (Fractal Pattern)
 
-A complex Middleware may internally use the same architectural shape:
+A complex Middleware may internally use the same architectural shape as the main project.
+The structure looks different depending on the viewing context.
+
+### 13.4.1 Consumer Project View (Installed Middleware)
+
+When a middleware unit is **embedded as a dependency** inside a consumer project,
+the consumer's comsect1 tree looks like:
 
 ```
-/deps/middleware/lin/
+/comsect1                          (consumer project root)
+  /deps/middleware/comm
+    /api
+      mdw_comm.h                   ← access point for prx_/poi_ in the consumer
+    /infra/bootstrap
+      ida_core_comm.c/h             ← middleware-qualified (§8.6)
+      poi_core_comm.c/h
+      cfg_core_comm.h
+    /project/features/
+      /schedule
+        ida_schedule_comm.c/h
+        prx_schedule_comm.c/h
+        poi_schedule_comm.c/h
+```
+
+This is the **consumer's view** — `api/` appears under `deps/middleware/<name>/` because that is
+where the middleware unit is installed.
+
+### 13.4.2 Standalone Middleware Repository View
+
+When the same middleware module is developed **as its own repository**, its `/comsect1` root follows
+the standard top-level structure (Section 7.3, Section 7.10):
+
+```
+/comsect1                          (middleware repo root)
   /api
-    mdw_lin.h
+    mdw_comm.h                     ← public API at root, NOT under deps/
   /infra/bootstrap
-    ida_core.c/h
-    poi_core.c/h
-    cfg_core.h
+    ida_core_comm.c/h              ← middleware-qualified (§8.6)
+    poi_core_comm.c/h
+    cfg_core_comm.h
   /project/features/
     /schedule
-      ida_schedule.c/h
-      prx_schedule.c/h
-      poi_schedule.c/h
+      ida_schedule_comm.c/h
+      prx_schedule_comm.c/h
+      poi_schedule_comm.c/h
 ```
 
+The `/api` folder is at the middleware unit root in both contexts. The difference is only the
+path from the outer project perspective (where in the outer tree the middleware unit is located).
+
 Notes:
-- Middleware reuses main project's `/infra` capability components.
+- When embedded, middleware reuses the consumer project's shared `/infra` capability components where possible.
 - Middleware must not duplicate HAL/BSP stacks.
-- `/api` is the only external membrane.
+- `/api` is the only external membrane in both views.
 
 ---
 
 ## 13.5 New Middleware Development Checklist
 
-- [ ] Located under `/deps/middleware/<name>/`
-- [ ] `/api` folder exists with public header
-- [ ] Internal core/project layout exists if module is complex
+Packaging context:
+- [ ] If developed as a standalone repository, the middleware unit root is `/comsect1`
+- [ ] If embedded into a consumer project, the middleware unit appears under `/deps/middleware/<name>/`
+- [ ] In both contexts, the middleware unit exposes `/api` at its own root
+
+Architecture and API:
+- [ ] Internal core/project layout exists if the middleware is complex
 - [ ] Public naming uses `Mdw_<ModuleName>_`
 - [ ] Internal state and implementation details are hidden
 - [ ] Used only by `prx_`/`poi_`, never by `ida_`
 - [ ] No direct include of feature resources (`cfg_`, `db_`, `stm_`)
-- [ ] Reuses shared `/infra/platform` and `/infra/service` where possible
+- [ ] Reuses shared `/infra/platform` and `/infra/service` where the consumer project provides them
+
+---
+
+## 13.6 Internal Naming (Collision Prevention)
+
+All internal files of a middleware comsect1 unit MUST follow the unit-qualified
+naming rule (§8.6): `<prefix>_<name>_<unit>`.
+
+This prevents file name collisions when the middleware is compiled alongside the
+consumer project or other middleware units. The `/api/mdw_<name>.h` filename determines `<unit>` for middleware.
+
+The §13.4 examples above already reflect this rule.
 
 ---
 

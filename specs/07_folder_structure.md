@@ -1,4 +1,4 @@
-﻿# 7. Folder Structure
+# 7. Folder Structure
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Layout**: Physical folder conventions (what this section defines)
@@ -89,17 +89,17 @@ See **Section 8** for full naming rules.
         /datastreams          (optional)
           stm_<project>.h
         /features
-          /motor
-            ida_motor.c/h
-            prx_motor.c/h     (optional by discriminator)
-            poi_motor.c/h
-            cfg_motor.h
-            db_motor.h
-          /lin_stack
-            ida_lin_stack.c/h
+          /sensor
+            ida_sensor.c/h
+            prx_sensor.c/h     (optional by discriminator)
+            poi_sensor.c/h
+            cfg_sensor.h
+            db_sensor.h
+          /comm_stack
+            ida_comm_stack.c/h
             /business
-              prx_lin_protocol_*.c
-              poi_lin_runtime.c/h
+              prx_comm_protocol_*.c
+              poi_comm_runtime.c/h
       /infra
         /bootstrap
           ida_core.c/h
@@ -123,6 +123,9 @@ See **Section 8** for full naming rules.
   /docs
   CMakeLists.txt
 ```
+
+> **Note:** File names above are shown in base form. When unit-qualified naming applies (§8.6),
+> append `_<unit>` to each `ida_`/`prx_`/`poi_`/`cfg_`/`db_` file name.
 
 ---
 
@@ -154,7 +157,7 @@ The `/api` folder is the public membrane of a comsect1 unit.
 
 ```text
 Main Application (Core 0)      Middleware Unit (example)
-/comsect1                      /comsect1/deps/middleware/lin
+/comsect1                      /comsect1/deps/middleware/comm
   /api                           /api
   /infra/bootstrap               /infra/bootstrap
   /project                       /project
@@ -169,10 +172,10 @@ Main Application (Core 0)      Middleware Unit (example)
 
 | What You See | What You Understand |
 |--------------|---------------------|
-| `/project/features/motor/` | "Motor feature logic is here." |
-| `ida_motor.c` | "Intent and decision for motor." |
-| `prx_motor.c` | "External-type interpretation for motor." |
-| `poi_motor.c` | "Mechanical execution for motor." |
+| `/project/features/sensor/` | "Sensor feature logic is here." |
+| `ida_sensor.c` | "Intent and decision for sensor." |
+| `prx_sensor.c` | "External-type interpretation for sensor." |
+| `poi_sensor.c` | "Mechanical execution for sensor." |
 | `/infra/service/` | "Shared service capability." |
 
 This supports low entry barrier and high comprehension.
@@ -183,7 +186,57 @@ This supports low entry barrier and high comprehension.
 
 Legacy folder layouts (`/modules/`, `/platform/`) are not conformant with this specification.
 The verification script enforces normative layout only.
-For migration steps, see `guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`.
+
+### 7.9.1 Migration Invariants
+
+1. The canonical folder skeleton (Section 7.5) MUST be created before file placement begins.
+2. Files MUST be placed into their canonical locations before semantic refactoring (layer role and balance corrections).
+3. After migration, non-conformant folders and orphaned files MUST be removed or moved outside the `/comsect1` boundary.
+
+For the step-by-step procedural guide, see `guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`.
+
+---
+
+## 7.10 Standalone Middleware Repository Layout
+
+A middleware module published as its own repository (not yet embedded into a consumer project)
+follows the same top-level structure as any comsect1 unit.
+
+```text
+/comsect1                       ← comsect1 root of the middleware repo
+  /api
+    mdw_<name>.h                ← public API header (the single external membrane)
+  /infra
+    /bootstrap
+      ida_core_<name>.c/h       ← unit-qualified (§8.6)
+      poi_core_<name>.c/h
+      cfg_core_<name>.h
+  /project
+    /config
+      cfg_project_<name>.h
+    /features
+      /<feature>
+        ida_<feature>_<name>.c/h
+        poi_<feature>_<name>.c/h
+        cfg_<feature>_<name>.h
+  /deps                         ← own external dependencies (if any)
+    /extern
+    /middleware
+/examples                       ← outside /comsect1 — consumer integration examples
+/docs
+CMakeLists.txt
+```
+
+Key rules:
+- `/api` at the comsect1 root is the middleware's own public API (same rule as any comsect1 unit).
+- `/examples` and `/docs` are consumer-facing artifacts and must reside **outside** the `/comsect1`
+  boundary.
+- When this repo is later embedded as a dependency in a consumer project, the consumer places the
+  repo under their own `/deps/middleware/<name>/` and gains access through `<name>/api/` — this is
+  the consumer-side view documented in §7.7 and §13.4.1.
+
+**Common mistake**: placing `mdw_<name>.h` under `/deps/middleware/<name>/api/` inside the standalone
+repo itself. This confuses the consumer project view with the standalone repo view.
 
 ---
 

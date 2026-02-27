@@ -1,4 +1,4 @@
-﻿# 9. Code Examples
+# 9. Code Examples
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > Examples are illustrative and non-normative.
@@ -45,11 +45,11 @@ void Ida_Display_Main(void)
 #include "prx_display.h"
 #include "poi_display.h"
 #include "db_display.h"
-#include "stm_lin_rx.h"
+#include "stm_comm_rx.h"
 
 Result_t Prx_Display_GetPendingCommand(DisplayCommand_t* out)
 {
-    const LinFrame_t* frame = Stm_LinRx_Get();
+    const CommFrame_t* frame = Stm_CommRx_Get();
     if ((frame == NULL) || (out == NULL)) {
         return RESULT_UNDEFINED;
     }

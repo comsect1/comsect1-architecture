@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Review"
+  short_description: "Review code and specs for comsect1 compliance"
+  default_prompt: "Use $comsect1-review to review this change for comsect1 compliance, findings first, and cite the governing rules."

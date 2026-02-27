@@ -1,4 +1,4 @@
-﻿# Appendix A. Exception Handling Decision Flow Template
+# Appendix A. Exception Handling Decision Flow Template
 
 > **Terminology:** This appendix is a reference for Section 6.4.
 
@@ -92,15 +92,15 @@ const FatalContext_t* Cfg_Fatal_GetContext(void)
 ## A.6 Usage Example
 
 ```c
-/* ida_motor.c */
+/* ida_sensor.c */
 #include "cfg_core.h"
-#include "prx_motor.h"
+#include "prx_sensor.h"
 
-void Ida_Motor_Init(void)
+void Ida_Sensor_Init(void)
 {
-    const Cfg_Motor_t* cfg = Prx_Motor_GetConfig();
+    const Cfg_Sensor_t* cfg = Prx_Sensor_GetConfig();
     if (cfg == NULL) {
-        FATAL_ERROR(ERROR_CODE_INVALID_CONFIG, "Motor config is NULL");
+        FATAL_ERROR(ERROR_CODE_INVALID_CONFIG, "Sensor config is NULL");
     }
 }
 ```

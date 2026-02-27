@@ -1,4 +1,4 @@
-﻿# 2. Overview
+# 2. Overview
 
 > **Terminology:** This section is the normative SSOT entry point.
 > For principle background, see **Section 1.6**.
@@ -101,6 +101,7 @@ The sections that follow define:
 | 12. Version History | Change log and superseded ideas |
 | 13. Middleware Guideline | Middleware integration and fractal pattern |
 | Appendix A | Exception handling template |
+| Appendix B | OOP adaptation (A2) |
 
 **This specification is the contract.** Read it to understand what rules are normative.
 
@@ -121,7 +122,7 @@ comsect1 separates five axes. Mixing them creates ambiguity.
 | **Domain** | responsibility boundary | Project domain, Infra capability domain, Dependency repository domain |
 | **Layout** | physical folder conventions | `/project`, `/infra/bootstrap`, `/infra/service`, `/infra/platform`, `/deps` |
 | **Design Pattern** | repeatable implementation structure | idea-praxis-poiesis |
-| **Execution Plane** | runtime interaction boundary | data plane (`stm_`) vs capability plane (`mdw_`, `svc_`, `hal_`, `bsp_`) |
+| **Execution Plane** | runtime interaction boundary | data plane (`stm_`) vs capability plane (`mdw_`, `svc_`, `hal_`, `bsp_`, core execution wrappers) |
 
 ### 2.7.2 Architecture layers (the 3-layer concept)
 
@@ -236,6 +237,17 @@ Rules:
 - Capability components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
 - Prefixes remain role-based; do not introduce `inf_` prefix as an architectural role marker.
 
+### 2.7.9 OOP language mapping
+
+comsect1 rules are language-agnostic (Section 1.2). When applied to object-oriented languages, the following mappings hold:
+
+- `.c/.h` compilation unit → class in a single source file
+- `#include` dependency → `import`/`using`/`Imports` statement, constructor parameter, or interface reference
+- Function-pointer interface struct → interface or abstract class
+- File-scope `static` variables → instance state belongs in Praxis/Poiesis; Idea remains stateless
+
+For the complete OOP adaptation guide including layer-to-class mapping, OOP-specific anti-patterns, and gate verification requirements, see **Appendix B (A2)**.
+
 ---
 
 ## License
@@ -248,10 +260,10 @@ You are free to:
 - **Share** - copy and redistribute the material in any medium or format for non-commercial purposes only.
 
 Under the following terms:
-- **Attribution** - you must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
-- **NonCommercial** - you may not use the material for commercial purposes.
-- **NoDerivatives** - if you remix, transform, or build upon the material, you may not distribute the modified material.
+- **Attribution** - You must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
+- **NonCommercial** - You may not use the material for commercial purposes.
+- **NoDerivatives** - If you remix, transform, or build upon the material, you may not distribute the modified material.
 
-No additional restrictions - you may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 *Copyright 2025 Kim Hyeongjeong. All rights reserved under the terms above.*

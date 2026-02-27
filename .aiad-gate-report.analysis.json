@@ -1,0 +1,42 @@
+{
+  "generatedAtUtc": "2026-03-06T07:46:13.177157Z",
+  "repoRoot": "F:\\repos\\comsect1\\comsect1-architecture",
+  "stages": [
+    {
+      "name": "meta-advisory",
+      "status": "clean",
+      "exitCode": 0,
+      "note": "No spec modifications detected",
+      "outputPath": null
+    },
+    {
+      "name": "spec",
+      "status": "passed",
+      "exitCode": 0,
+      "note": "Verify-Spec passed",
+      "outputPath": null
+    },
+    {
+      "name": "tooling",
+      "status": "passed",
+      "exitCode": 0,
+      "note": "Verify-ToolingConsistency passed",
+      "outputPath": null
+    },
+    {
+      "name": "code",
+      "status": "skipped",
+      "exitCode": 0,
+      "note": "Skipped by flag",
+      "outputPath": null
+    },
+    {
+      "name": "oop",
+      "status": "skipped",
+      "exitCode": 0,
+      "note": "OOP root not provided/found; skipped OOP stage",
+      "outputPath": null
+    }
+  ],
+  "gatePassed": true
+}

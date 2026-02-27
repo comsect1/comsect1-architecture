@@ -1,4 +1,4 @@
-﻿# 12. Version History
+# 12. Version History
 
 > **Note:** This section is a non-normative record of architectural evolution.
 
@@ -43,6 +43,73 @@ This weakened role clarity and caused classification drift. The architecture res
 Philosophical alignment note:
 - The author's upstream philosophical work describes practical propagation as `Idea -> Praxis -> implementation`.
 - The split keeps that alignment by treating `Poiesis` as an explicit decomposition of the former implementation zone, not as an additional philosophical pole.
+
+---
+
+## v1.0.1
+
+### Normative additions
+
+- **Pre-Generation Discriminator**: 3-Question Discriminator must be explicitly answered and documented before writing `ida_`/`prx_`/`poi_` code (not silent application)
+- **Layer Balance Invariant**: `ida_` must contain domain decisions; empty forwarding-only `ida_` is a structural violation equal in severity to dependency direction errors
+- **Migration Invariants** (Section 7.9.1): canonical folder skeleton must precede file placement; non-conformant remnants must be removed after migration
+- **Migration Cleanup Verification** (Section 11.10): checklist for verifying boundary cleanup after legacy migration
+
+### Guides
+
+- **EG_02 Refactoring Legacy**: Execution Phase restructured to spatial-first 4-step flow (scaffold → place → verify/refactor → cleanup)
+- **V_01 Post-Task Checklist**: Section A.6 Layer Balance check added; Section J Migration Cleanup added
+
+### Normative additions (continued)
+
+- **Standalone Middleware Repository Layout** (Section 7.10): canonical folder structure for
+  middleware published as its own repository — `/api` at the comsect1 root; `examples/` and
+  `docs/` outside the `/comsect1` boundary. Distinguishes standalone repo view (§7.10) from
+  consumer project view (§13.4.1). Follows from the fractal comsect1 unit principle (Ch.3
+  Structure). Does not require upstream consultation.
+- **§13.4 split into consumer view (§13.4.1) and standalone view (§13.4.2)**: clarifies the
+  two-context nature of middleware API placement without changing the underlying rule.
+
+### Guides
+
+- **EG_06 Analysis Report Format**: display policy — write full report to `.comsect1-analysis.md`;
+  show only Verdict Block (§A) and Closing Summary (§C) in conversation. Reduces output token
+  consumption without information loss.
+- **EG_07 Analysis Procedure**: Phase Gate model — two-phase analysis with gate as binary
+  go/no-go decision point. Phase 1: gate execution (always). Phase 2: full qualitative analysis
+  (only when gate passes). Lazy spec loading: read only spec sections relevant to gate violation
+  rule prefixes.
+- **EG_08 Review Procedure — Check 0**: folder structure check added as the first review check.
+  `specs/07_folder_structure.md` was in the canonical sources list but had no corresponding
+  check item; Check 0 closes this gap.
+
+### Tooling
+
+- Reference-based deployment: installed files reference canonical spec via path (`{{COMSECT1_ROOT}}`), not embedded copies
+- Install scripts: `tooling/claude-code/install.sh` (bash), `install.ps1` (PowerShell)
+- Layer Balance Check added to reviewer agent as BLOCKING severity
+- **Language-agnostic folder enforcement**: `verify_folder_structure()` extracted to
+  `comsect1_gate_helpers.py` (svc_ analog); both `Verify-Comsect1Code.py` and
+  `Verify-OOPCode.py` now call it. A2 invariant ("folder structure rules not relaxed for OOP")
+  is now mechanically enforced.
+- **Codex AI tooling package**: `tooling/codex/` with `comsect1-analyze` and `comsect1-review`
+  skills, install and bootstrap scripts. Consistency verified by `Verify-ToolingConsistency.py`
+  alongside the existing claude-code package.
+- **Gate: deps/ exclusion**: `Verify-Comsect1Code.py` and `Verify-OOPCode.py` now exclude
+  `deps/` from all per-file checks (path, include, layer-balance, red-flag). External
+  dependency code is verified by its own gate — the consumer project gate checks only
+  project-owned code (`project/` and `infra/`). Follows from `deps/` being a Dependency
+  Repository (§7.3), not project-owned code. Folder-structure root checks (§7.10) are
+  unaffected as they operate at the root level, not per-file.
+- **Unit-Qualified Naming** (§8.6, §8.2, §13.6): All comsect1 units (main project and
+  sub-units alike) must qualify internal file names as `<prefix>_<name>_<unit>`. Main
+  project exception removed. `<unit>` is derived from the API header for sub-units
+  (e.g., `api/mdw_comm.h` → `comm`) or from `project/config/cfg_project_<unit>.h` for
+  main projects (renaming `cfg_project.h`). Gate `detect_unit_name()` covers both
+  anchor types. Gate enforces migration: main projects with `cfg_project.h` but no
+  `cfg_project_<unit>.h` fail with `naming.missing_unit_anchor`. `cfg_core.h` legacy
+  fallback retained for bootstrap files only. §8.2 bootstrap row names updated to
+  `<prefix>_core_<unit>`. §13.4.1/§13.4.2 examples reflect qualified naming.
 
 ---
 

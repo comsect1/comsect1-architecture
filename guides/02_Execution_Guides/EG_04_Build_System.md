@@ -1,4 +1,4 @@
-﻿# comsect1 Build System Guidelines
+# comsect1 Build System Guidelines
 
 ## 1. Philosophy: Build Follows Architecture
 
@@ -61,13 +61,16 @@ add_executable(${PROJECT_NAME}
 )
 ```
 
+Unit-qualified naming (Section 8.6) changes file names, not include roots.
+The build still points at directories such as `/infra/bootstrap/` and `/project/config/`.
+
 ---
 
 ## 4. Configuration Management
 
-- **Core contract:** `/infra/bootstrap/cfg_core.h`
-- **Project target config:** `/project/config/cfg_project.h`
-- **Feature config/data:** `/project/features/<f>/cfg_<f>.h`, `/project/features/<f>/db_<f>.h`
+- **Core contract:** `/infra/bootstrap/cfg_core_<unit>.h`
+- **Project target config:** `/project/config/cfg_project_<unit>.h`
+- **Feature config/data:** `/project/features/<f>/cfg_<f>_<unit>.h`, `/project/features/<f>/db_<f>_<unit>.h`
 - **Build variants:** use CMake options (for example `-DMCU_STM32=ON`) to select target-specific implementations.
 
 ---

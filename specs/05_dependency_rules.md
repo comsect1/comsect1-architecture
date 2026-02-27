@@ -1,4 +1,4 @@
-﻿# 5. Dependency Rules
+# 5. Dependency Rules
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Architecture Layer**: Idea / Praxis / Poiesis
@@ -51,39 +51,39 @@ poi_core.c
   +-- (NO ida_<feature>.h)
   +-- (NO hal_*.h, bsp_*.h)
 
-/* /project/features/motor/ */
-ida_motor.c
+/* /project/features/sensor/ */
+ida_sensor.c
   +-- #include "cfg_core.h"
-  +-- #include "prx_motor.h"       /* optional */
-  +-- #include "poi_motor.h"       /* optional */
-  +-- (NO cfg_motor.h, db_motor.h, stm_*.h)
+  +-- #include "prx_sensor.h"       /* optional */
+  +-- #include "poi_sensor.h"       /* optional */
+  +-- (NO cfg_sensor.h, db_sensor.h, stm_*.h)
   +-- (NO mdw_*.h, svc_*.h, hal_*.h, bsp_*.h)
 
-/* /project/features/motor/ */
-prx_motor.c
-  +-- #include "prx_motor.h"
-  +-- #include "poi_motor.h"       /* same feature */
-  +-- #include "cfg_motor.h"
-  +-- #include "db_motor.h"
-  +-- #include "stm_sensor.h"
-  +-- #include "mdw_can.h"
+/* /project/features/sensor/ */
+prx_sensor.c
+  +-- #include "prx_sensor.h"
+  +-- #include "poi_sensor.h"       /* same feature */
+  +-- #include "cfg_sensor.h"
+  +-- #include "db_sensor.h"
+  +-- #include "stm_temp.h"
+  +-- #include "mdw_serial.h"
   +-- #include "svc_math.h"
-  +-- #include "hal_pwm.h"
+  +-- #include "hal_adc.h"
 
-/* /project/features/motor/ */
-poi_motor.c
-  +-- #include "poi_motor.h"
-  +-- #include "cfg_motor.h"
-  +-- #include "db_motor.h"
-  +-- #include "stm_sensor.h"
-  +-- #include "mdw_can.h"
+/* /project/features/sensor/ */
+poi_sensor.c
+  +-- #include "poi_sensor.h"
+  +-- #include "cfg_sensor.h"
+  +-- #include "db_sensor.h"
+  +-- #include "stm_temp.h"
+  +-- #include "mdw_serial.h"
   +-- #include "svc_math.h"
-  +-- #include "hal_pwm.h"
+  +-- #include "hal_adc.h"
 
-/* /deps/middleware/can/ */
-mdw_can.c
-  +-- #include "mdw_can.h"
-  +-- #include "hal_can.h"
+/* /deps/middleware/serial/ */
+mdw_serial.c
+  +-- #include "mdw_serial.h"
+  +-- #include "hal_serial.h"
   +-- (NO ida_*.h, prx_*.h, poi_*.h)
 ```
 
@@ -94,14 +94,14 @@ mdw_can.c
 ### 5.2.1 Within a Feature
 
 ```
-+------------------------------------------------+
-| /project/features/motor/                       |
-|                                                |
-| ida_motor -> { prx_motor, poi_motor }          |
-| prx_motor -> poi_motor                         |
-| prx_motor/poi_motor -> cfg_/db_/stm_/mdw_/svc_|
-| prx_motor/poi_motor -> hal_                    |
-+------------------------------------------------+
++--------------------------------------------------+
+| /project/features/sensor/                        |
+|                                                  |
+| ida_sensor -> { prx_sensor, poi_sensor }         |
+| prx_sensor -> poi_sensor                         |
+| prx_sensor/poi_sensor -> cfg_/db_/stm_/mdw_/svc_|
+| prx_sensor/poi_sensor -> hal_                    |
++--------------------------------------------------+
 ```
 
 Rules:

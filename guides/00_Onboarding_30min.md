@@ -1,6 +1,10 @@
-﻿# comsect1 30-Minute Onboarding (Junior Engineer)
+# comsect1 30-Minute Onboarding (Junior Engineer)
 
 This guide is a time-boxed reading path to reach safe-to-contribute understanding of comsect1.
+
+> **Scope note**: This guide covers the C/embedded baseline. For OOP projects (C#, Java, VB.NET),
+> also read `specs/A2_oop_adaptation.md` after completing this path — it adapts the 3-layer model
+> to OOP constraints (Appendix B).
 
 ---
 
@@ -53,7 +57,7 @@ This guide is a time-boxed reading path to reach safe-to-contribute understandin
 
 Classify each item: `ida_` / `prx_` / `poi_` / `svc_` / `mdw_` / `hal_` / `bsp_` / `cfg_` / `db_` / `stm_`.
 
-1. Stop motor when overheat condition is detected.
+1. Stop sensor when overheat condition is detected.
 2. Parse protocol byte fields to decide operation mode.
 3. Wrap OS task creation API without any decision logic.
 4. Convert raw ADC value to Celsius.

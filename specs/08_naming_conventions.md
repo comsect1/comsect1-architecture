@@ -1,4 +1,4 @@
-﻿# 8. Naming Conventions
+# 8. Naming Conventions
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 
@@ -9,10 +9,10 @@
 Every filename is an architectural declaration:
 
 ```
-ida_motor.c   -> Idea file for motor feature
-prx_motor.c   -> Praxis file for motor feature
-poi_motor.c   -> Poiesis file for motor feature
-cfg_motor.h   -> Feature configuration
+ida_sensor.c   -> Idea file for sensor feature
+prx_sensor.c   -> Praxis file for sensor feature
+poi_sensor.c   -> Poiesis file for sensor feature
+cfg_sensor.h   -> Feature configuration
 ```
 
 A newcomer should infer role, allowed dependencies, and expected responsibility from prefix alone.
@@ -23,10 +23,10 @@ A newcomer should infer role, allowed dependencies, and expected responsibility 
 
 | Category | Folder Path | Prefix | Note |
 |----------|-------------|--------|------|
-| **Core Idea** | `/infra/bootstrap/` | `ida_core` | required |
-| **Core Poiesis** | `/infra/bootstrap/` | `poi_core` | required |
-| **Core Praxis (optional)** | `/infra/bootstrap/` | `prx_core` | only if core has externally-coupled interpretation |
-| **Core Contract header** | `/infra/bootstrap/` | `cfg_core` | required |
+| **Core Idea** | `/infra/bootstrap/` | `ida_core_<unit>` | required |
+| **Core Poiesis** | `/infra/bootstrap/` | `poi_core_<unit>` | required |
+| **Core Praxis (optional)** | `/infra/bootstrap/` | `prx_core_<unit>` | only if core has externally-coupled interpretation |
+| **Core Contract header** | `/infra/bootstrap/` | `cfg_core_<unit>` | required |
 | **Project Config** | `/project/config/` | `cfg_` | required |
 | **Project Database** | `/project/config/` | `db_` | optional |
 | **Feature Idea** | `/project/features/<feature>/` | `ida_` | required |
@@ -42,7 +42,8 @@ A newcomer should infer role, allowed dependencies, and expected responsibility 
 | **External modules** | `/deps/extern/` | *(external)* | optional |
 
 Reserved project header:
-- `/project/config/cfg_project.h` for target configuration (Praxis/Poiesis include only)
+- `/project/config/cfg_project_<unit>.h` for target configuration (Praxis/Poiesis include only)
+  (This file also serves as the identity anchor for main projects — see §8.6)
 
 ### 8.2.1 No `inf_` role prefix policy
 
@@ -96,6 +97,68 @@ Primary enforcement remains human code review. Optional scripts may assist, but 
 | `db_`  | static data tables |
 | `hal_` | hardware abstraction layer |
 | `bsp_` | board support package |
+
+---
+
+## 8.6 Unit-Qualified Naming
+
+Every comsect1 unit that exposes a public API (identified by the presence of `api/`
+at the comsect1 root) is a **sub-unit** and MUST qualify all internal file names with
+its unit identifier to prevent name collisions in consumer build include paths.
+
+Pattern: `<prefix>_<name>_<unit>`
+
+The `<unit>` identifier is derived from the primary API header in `api/`:
+
+| API header          | Unit identifier | Example internal file    |
+|---------------------|-----------------|--------------------------|
+| `api/mdw_comm.h`    | `comm`          | `ida_core_comm.c/h`      |
+| `api/mdw_storage.h` | `storage`       | `ida_core_storage.c/h`   |
+| `api/hal_uart.h`    | `uart`          | `ida_core_uart.c/h`      |
+| `api/mylib.h`       | `mylib`         | `ida_core_mylib.c/h`     |
+
+Extraction rule: if the API header stem contains `_`, strip the first segment (role prefix)
+and use the remainder. If no `_`, use the full stem.
+
+Scope:
+- Applies to: `ida_`, `prx_`, `poi_`, `cfg_`, `db_` files in `/infra/` and `/project/`
+- Exempt: `api/<header>.h` (already named with the unit identity)
+- Exempt: `svc_`, `hal_`, `bsp_` files (shared infrastructure, intentionally reused)
+
+**Unit identity declaration**:
+
+Every comsect1 unit must declare its identity through an anchor file from which
+`<unit>` is derived:
+
+| Unit type      | Anchor file                               | Unit extracted |
+|----------------|-------------------------------------------|----------------|
+| Sub-unit       | `api/<role>_<unit>.h` (e.g. `mdw_comm.h`) | `<unit>`       |
+| Main project   | `project/config/cfg_project_<unit>.h`    | `<unit>`       |
+
+For main projects, this means renaming `cfg_project.h` to `cfg_project_<projectname>.h`
+(e.g. `cfg_project_demo.h`). This is the only file that changes — the containing folder
+(`project/config/`) remains unchanged.
+
+**Important — folder structure is not affected**:
+This rule applies to **file names only**. Folder paths are defined by §7 and remain
+unchanged. The comsect1 folder skeleton (`/infra/bootstrap/`, `/project/features/<feature>/`,
+etc.) is identical for all comsect1 units.
+
+Example — legacy vs. qualified naming (unit = `demo`):
+
+| Location (unchanged)          | Legacy form (unqualified) | Qualified form              |
+|-------------------------------|---------------------------|-----------------------------|
+| `infra/bootstrap/`            | `cfg_core.h`              | `cfg_core_demo.h`           |
+| `infra/bootstrap/`            | `ida_core.c/h`            | `ida_core_demo.c/h`         |
+| `infra/bootstrap/`            | `poi_core.c/h`            | `poi_core_demo.c/h`         |
+| `project/features/schedule/`  | `ida_schedule.c/h`        | `ida_schedule_demo.c/h`     |
+| `project/features/schedule/`  | `prx_schedule.c/h`        | `prx_schedule_demo.c/h`     |
+
+Rationale: In C embedded builds, include paths are flat. Multiple comsect1 units compiled
+together each contribute files with identical base names — the compiler cannot distinguish
+them. Qualifying with the unit identifier makes each file's identity globally unique.
+
+See also: §13.6 (middleware instance); §13.4 (updated examples).
 
 ---
 

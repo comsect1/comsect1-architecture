@@ -1,4 +1,4 @@
-﻿# comsect1 Post-Task Verification Checklist
+# comsect1 Post-Task Verification Checklist
 
 This checklist is mandatory after each development/refactoring task unit.
 If any item fails, the task is not complete.
@@ -23,6 +23,12 @@ If any item fails, the task is not complete.
 
 5. Allowed dependencies only
 - [ ] `ida_` includes only own `prx_` and/or own `poi_` interfaces (+ `cfg_core.h`).
+
+6. Layer Balance (structural invariant — equal in severity to dependency violations)
+- [ ] `ida_` contains at least one domain decision (conditional with business meaning).
+  A file consisting only of forwarding calls with no domain conditionals is an Empty Idea violation.
+- [ ] `poi_` contains no domain-semantic conditionals (`if`/`switch`/`case` based on business rules, policies, limits, states, or modes).
+  If a requirement change would modify `poi_` instead of `ida_`, domain logic is in the wrong layer.
 
 ---
 
@@ -74,6 +80,10 @@ If any item fails, the task is not complete.
 
 3. Completeness
 - [ ] public APIs validate arguments and return structured errors.
+
+4. Service (`svc_`) documentation and lifecycle
+- [ ] `svc_` files have header comments documenting purpose and consumer features.
+- [ ] If a feature consuming a `svc_` was modified/removed, `svc_` consolidation reviewed.
 
 ---
 
@@ -143,6 +153,24 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 
 3. Layout invariants
 - [ ] infra-integrated folders do not relax layer dependency rules.
+
+---
+
+## J. Migration Cleanup Verification
+
+(Applicable to legacy migration tasks only)
+
+1. Folder structure
+- [ ] Canonical folder skeleton (specs Section 7.5) is fully present.
+- [ ] No legacy layout folders remain (`/modules/`, `/platform/` at root, etc.).
+
+2. Boundary enforcement
+- [ ] No files outside canonical locations within `/comsect1`.
+- [ ] Non-comsect1 files moved outside `/comsect1` boundary.
+
+3. Hygiene
+- [ ] No orphaned/unused headers or sources from pre-migration.
+- [ ] Build system references updated to final folder structure.
 
 ---
 

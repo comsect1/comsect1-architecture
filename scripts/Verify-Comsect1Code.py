@@ -9,47 +9,49 @@ import json
 import os
 import re
 import sys
+from functools import partial
 from pathlib import Path
+
+from comsect1_gate_helpers import (
+    add_finding,
+    collect_source_files,
+    count_code_lines as _count_code_lines,
+    validate_comsect1_root_boundary,
+    verify_folder_structure,
+    verify_layer_balance,
+    verify_red_flags_common,
+)
 
 SOURCE_EXTENSIONS = {".c", ".h", ".cpp", ".hpp"}
 INCLUDE_REGEX = re.compile(r'^\s*#\s*include\s*[<"](?P<path>[^">]+)[">]')
 SYSTEM_INCLUDE_REGEX = re.compile(r"^\s*#\s*include\s*<")
+
+# C-specific code line counter: skip preprocessor directives
+count_code_lines = partial(_count_code_lines, line_comment_prefixes=("//",), skip_preprocessor=True)
 
 
 def full_path(path_like: str | Path) -> str:
     return os.path.abspath(os.fspath(path_like))
 
 
-def add_finding(
-    findings: list[dict[str, object]],
-    severity: str,
-    file_path: str,
-    line: int,
-    rule: str,
-    message: str,
-) -> None:
-    findings.append(
-        {
-            "Severity": severity,
-            "File": file_path,
-            "Line": line,
-            "Rule": rule,
-            "Message": message,
-        }
-    )
-
-
-def get_role_info(file_name: str) -> tuple[str, str | None]:
+def get_role_info(file_name: str, unit_name: str | None = None) -> tuple[str, str | None]:
     stem = Path(file_name).stem
 
     if re.match(r"^inf_", stem):
         return "invalid_prefix", None
 
-    core_map = {
-        "ida_core": "core_idea",
-        "poi_core": "core_poiesis",
-        "prx_core": "core_praxis",
-    }
+    if unit_name:
+        core_map: dict[str, str] = {
+            f"ida_core_{unit_name}": "core_idea",
+            f"poi_core_{unit_name}": "core_poiesis",
+            f"prx_core_{unit_name}": "core_praxis",
+        }
+    else:
+        core_map: dict[str, str] = {
+            "ida_core": "core_idea",
+            "poi_core": "core_poiesis",
+            "prx_core": "core_praxis",
+        }
     if stem in core_map:
         return core_map[stem], "core"
 
@@ -138,12 +140,35 @@ def test_is_same_feature_include(
     return test_is_same_feature_header(leaf=leaf, prefix=prefix, feature=feature)
 
 
-def collect_source_files(root: Path) -> list[Path]:
-    files: list[Path] = []
-    for p in root.rglob("*"):
-        if p.is_file() and p.suffix.lower() in SOURCE_EXTENSIONS:
-            files.append(p)
-    return files
+
+
+
+
+def detect_unit_name(root_path: Path) -> str | None:
+    """Detect the unit identifier for any comsect1 unit (§8.6).
+
+    Sub-unit (api/ present): derived from api/<role>_<unit>.h
+    Main project (no api/):  derived from project/config/cfg_project_<unit>.h
+
+    Returns None if unit cannot be determined (legacy project not yet migrated).
+    """
+    api_dir = root_path / "api"
+    if api_dir.is_dir():
+        for h in sorted(api_dir.glob("*.h")):
+            stem = h.stem
+            if "_" in stem:
+                return stem.split("_", 1)[1]
+            return stem
+        # api/ exists but no headers — fall through to project/config anchor
+
+    project_config_dir = root_path / "project" / "config"
+    if project_config_dir.is_dir():
+        for h in sorted(project_config_dir.glob("cfg_project_*.h")):
+            stem = h.stem  # e.g. "cfg_project_demo"
+            inner = stem[len("cfg_project_"):]
+            if inner:
+                return inner
+    return None
 
 
 def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
@@ -153,7 +178,7 @@ def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify comsect1 code architecture rules.")
-    parser.add_argument("-Root", dest="root", required=True)
+    parser.add_argument("-Root", dest="root", required=True, help="Dedicated comsect1 root directory to scan")
     parser.add_argument("-JsonOut", dest="json_out", default=None)
     args = parser.parse_args()
 
@@ -161,11 +186,18 @@ def main() -> int:
     if not root_path.is_dir():
         raise RuntimeError(f"Root folder not found: {root_path}")
 
+    unit_name = detect_unit_name(root_path)
+
     findings: list[dict[str, object]] = []
 
     def err(file_path: str, line: int, rule: str, message: str) -> None:
         add_finding(findings, "error", file_path, line, rule, message)
 
+    root_boundary_issue = validate_comsect1_root_boundary(root_path)
+    if root_boundary_issue:
+        err(str(root_path), 1, "layout.root_boundary", root_boundary_issue)
+
+    api_dir = root_path / "api"
     infra_bootstrap_dir = root_path / "infra" / "bootstrap"
     infra_service_dir = root_path / "infra" / "service"
     infra_hal_dir = root_path / "infra" / "platform" / "hal"
@@ -182,22 +214,45 @@ def main() -> int:
     if not deps_root_dir.is_dir():
         err(str(root_path), 1, "layout.required", f"Missing required dependency repository path: {deps_root_dir}")
 
-    core_config_names = {"cfg_core.h"}
-    top_level_core_contract_header = infra_bootstrap_dir / "cfg_core.h"
+    # Unit-aware core file name sets — strictly one mode: qualified when unit known, legacy when not
+    if unit_name:
+        cfg_core_names: set[str] = {f"cfg_core_{unit_name}.h"}
+        ida_core_names: set[str] = {f"ida_core_{unit_name}.h"}
+        poi_core_names: set[str] = {f"poi_core_{unit_name}.h"}
+        prx_core_names: set[str] = {f"prx_core_{unit_name}.h"}
+    else:
+        cfg_core_names: set[str] = {"cfg_core.h"}
+        ida_core_names: set[str] = {"ida_core.h"}
+        poi_core_names: set[str] = {"poi_core.h"}
+        prx_core_names: set[str] = {"prx_core.h"}
+    core_config_names = cfg_core_names
+
+    expected_core_cfg = f"cfg_core_{unit_name}.h" if unit_name else "cfg_core.h"
+    top_level_core_contract_header = infra_bootstrap_dir / expected_core_cfg
     if not top_level_core_contract_header.is_file():
         err(str(root_path), 1, "layout.required", f"Missing required Core Contract header: {top_level_core_contract_header}")
 
     core_config_dir = root_path / "core" / "config"
     if core_config_dir.is_dir():
-        err(str(root_path), 1, "layout.legacy", f"Legacy core config folder detected. Migrate to /infra/bootstrap/cfg_core.h: {core_config_dir}")
+        err(str(root_path), 1, "layout.legacy", f"Legacy core config folder detected. Migrate to /infra/bootstrap/{expected_core_cfg}: {core_config_dir}")
 
     project_config_names: set[str] = set()
     if project_config_dir.is_dir():
         for header in project_config_dir.glob("*.h"):
             if header.is_file():
                 project_config_names.add(header.name)
-        if "cfg_project.h" not in project_config_names:
-            err(str(project_config_dir), 1, "layout.required", f"Missing required project target interface header: {project_config_dir / 'cfg_project.h'}")
+        expected_project_cfg = f"cfg_project_{unit_name}.h" if unit_name else "cfg_project.h"
+        if expected_project_cfg not in project_config_names:
+            err(str(project_config_dir), 1, "layout.required",
+                f"Missing required project target interface header: {project_config_dir / expected_project_cfg}")
+        # §8.6: Main project must establish unit identity via cfg_project_<unit>.h
+        # When unit_name is None and api/ is absent, this is a main project without an anchor —
+        # cfg_project.h alone is insufficient; the gate cannot infer the unit name.
+        if unit_name is None and "cfg_project.h" in project_config_names:
+            err(str(project_config_dir), 1, "naming.missing_unit_anchor",
+                "Main project identity anchor missing (§8.6). "
+                "Rename cfg_project.h to cfg_project_<unit>.h "
+                "(e.g. cfg_project_demo.h) to enable unit-qualified naming.")
     else:
         err(str(root_path), 1, "layout.required", f"Missing required project config folder: {project_config_dir}")
 
@@ -213,7 +268,17 @@ def main() -> int:
     if legacy_platform_dir.is_dir():
         err(str(root_path), 1, "layout.legacy", f"Legacy platform folder detected. Migrate to /infra/platform/: {legacy_platform_dir}")
 
-    source_files = collect_source_files(root_path)
+    # --- Comprehensive folder tree checks (Section 7.3, 7.5, 7.10) ---
+    verify_folder_structure(root_path, findings)
+
+    source_files = collect_source_files(root_path, SOURCE_EXTENSIONS)
+    # Exclude deps/ — external dependency code is verified by its own gate.
+    # The consumer project gate checks only project-owned code (project/ and infra/).
+    # deps/ is a Dependency Repository (§7.3), not project-owned code.
+    source_files = [
+        f for f in source_files
+        if not test_is_under_path(f, deps_root_dir)
+    ]
     if not source_files:
         err(str(root_path), 1, "layout.required", f"No source files found under: {root_path}")
 
@@ -230,7 +295,7 @@ def main() -> int:
     for candidate in source_files:
         if candidate.suffix.lower() not in {".h", ".hpp"}:
             continue
-        candidate_role, _ = get_role_info(candidate.name)
+        candidate_role, _ = get_role_info(candidate.name, unit_name)
         if candidate_role not in {"feature_cfg", "feature_db", "datastream"}:
             continue
 
@@ -299,7 +364,7 @@ def main() -> int:
             is_nested_deps_unit and has_project_datastreams_segment
         )
 
-        role, feature = get_role_info(file.name)
+        role, feature = get_role_info(file.name, unit_name)
         feature_from_path = get_feature_from_path(full_file_path)
         if feature_from_path:
             feature = feature_from_path
@@ -316,8 +381,8 @@ def main() -> int:
                 err(str(file), 1, "naming.prefix", f"Unknown architecture file role prefix: {file.name}")
             continue
 
-        if file.name.lower() == "cfg_core.h" and not is_under_any_bootstrap:
-            err(str(file), 1, "path.bootstrap", "cfg_core.h must be located under /infra/bootstrap (root or nested architecture unit).")
+        if file.name.lower() in cfg_core_names and not is_under_any_bootstrap:
+            err(str(file), 1, "path.bootstrap", f"{file.name} must be located under /infra/bootstrap (root or nested architecture unit).")
 
         if role == "core_idea" and not is_under_any_bootstrap:
             err(str(file), 1, "path.bootstrap", "ida_core must be located under /infra/bootstrap (root or nested architecture unit).")
@@ -331,8 +396,8 @@ def main() -> int:
             err(str(file), 1, "path.infra_hal", "hal_* files must be located under /infra/platform/hal (root or nested architecture unit).")
         elif role == "bsp" and not is_under_any_bsp:
             err(str(file), 1, "path.infra_bsp", "bsp_* files must be located under /infra/platform/bsp (root or nested architecture unit).")
-        elif role == "middleware" and not is_under_deps_middleware and not is_under_deps_extern:
-            err(str(file), 1, "path.deps_middleware", "mdw_* files must be located under /deps/middleware or /deps/extern.")
+        elif role == "middleware" and not is_under_deps_middleware and not is_under_deps_extern and not test_is_under_path(full_file_path, api_dir):
+            err(str(file), 1, "path.deps_middleware", "mdw_* files must be located under /deps/middleware, /deps/extern, or /api.")
         elif role == "idea" and not is_under_any_project_features:
             err(str(file), 1, "path.project_feature", "ida_* feature files must be located under /project/features (root or nested architecture unit).")
         elif role == "praxis" and not is_under_any_project_features:
@@ -341,10 +406,13 @@ def main() -> int:
             err(str(file), 1, "path.project_feature", "poi_* feature files must be located under /project/features (root or nested architecture unit).")
         elif role == "feature_cfg":
             is_external_non_fractal_cfg = is_nested_deps_unit and not has_project_features_segment and not has_project_config_segment
-            if not is_external_non_fractal_cfg and file.name.lower() != "cfg_core.h":
-                if file.name.lower() == "cfg_project.h":
+            if not is_external_non_fractal_cfg and file.name.lower() not in cfg_core_names:
+                is_project_anchor_cfg = file.name.lower() == "cfg_project.h" or (
+                    unit_name and file.name.lower() == f"cfg_project_{unit_name}.h"
+                )
+                if is_project_anchor_cfg:
                     if not is_under_any_project_config:
-                        err(str(file), 1, "path.project_config", "cfg_project.h must be located under /project/config (root or nested architecture unit).")
+                        err(str(file), 1, "path.project_config", f"{file.name} must be located under /project/config (root or nested architecture unit).")
                 elif not is_under_any_project_features and not is_under_any_project_config:
                     err(str(file), 1, "path.feature_resource", f"cfg_* feature files must be located under /project/features/ or /project/config/ (root or nested architecture unit): {file.name}")
         elif role == "feature_db":
@@ -380,9 +448,9 @@ def main() -> int:
             is_core_cfg = leaf in core_config_names
             is_project_cfg = leaf in project_config_names
             if role == "core_idea":
-                if re.match(r"^prx_", leaf) and leaf != "prx_core.h":
+                if re.match(r"^prx_", leaf) and leaf not in prx_core_names:
                     err(str(file), line_no, "ida_core.include", f"ida_core must not include feature praxis: {include_path}")
-                if re.match(r"^poi_", leaf) and leaf != "poi_core.h":
+                if re.match(r"^poi_", leaf) and leaf not in poi_core_names:
                     err(str(file), line_no, "ida_core.include", f"ida_core must not include feature poiesis: {include_path}")
                 if re.match(r"^cfg_", leaf) and not is_core_cfg:
                     err(str(file), line_no, "ida_core.include", f"ida_core may include only core contract headers: {include_path}")
@@ -402,9 +470,9 @@ def main() -> int:
                     err(str(file), line_no, "ida.include", f"Idea must not include lower layer/resource headers directly: {include_path}")
 
             elif role == "core_poiesis":
-                if re.match(r"^ida_", leaf) and leaf != "ida_core.h":
+                if re.match(r"^ida_", leaf) and leaf not in ida_core_names:
                     err(str(file), line_no, "poi_core.include", f"poi_core must not include feature ideas: {include_path}")
-                if re.match(r"^(prx_|poi_)", leaf) and leaf != "poi_core.h":
+                if re.match(r"^(prx_|poi_)", leaf) and leaf not in poi_core_names:
                     err(str(file), line_no, "poi_core.include", f"poi_core must not include feature PRX/POI headers: {include_path}")
                 if re.match(r"^(hal_|bsp_)", leaf):
                     err(str(file), line_no, "poi_core.include", f"poi_core must not include platform headers directly: {include_path}")
@@ -412,9 +480,9 @@ def main() -> int:
                     err(str(file), line_no, "poi_core.include", f"poi_core may include only core contract headers: {include_path}")
 
             elif role == "core_praxis":
-                if re.match(r"^ida_", leaf) and leaf != "ida_core.h":
+                if re.match(r"^ida_", leaf) and leaf not in ida_core_names:
                     err(str(file), line_no, "prx_core.include", f"prx_core must not include feature ideas: {include_path}")
-                if re.match(r"^(prx_|poi_)", leaf) and leaf not in {"prx_core.h", "poi_core.h"}:
+                if re.match(r"^(prx_|poi_)", leaf) and leaf not in (prx_core_names | poi_core_names):
                     err(str(file), line_no, "prx_core.include", f"prx_core must not include feature PRX/POI headers: {include_path}")
                 if re.match(r"^(hal_|bsp_)", leaf):
                     err(str(file), line_no, "prx_core.include", f"prx_core must not include platform headers directly: {include_path}")
@@ -465,12 +533,42 @@ def main() -> int:
                 if is_forbidden_platform_include:
                     err(str(file), line_no, "platform.include", f"Platform must not include upper-layer/resource/module headers: {include_path}")
 
-    errors = [f for f in findings if f["Severity"] == "error"]
+    # Pre-group .c files by architectural role for shared helpers
+    c_files = [f for f in source_files if f.suffix.lower() == ".c"]
+    ida_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "idea"]
+    prx_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "praxis"]
+    poi_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "poiesis"]
+
+    # Stage: Layer Balance Invariant (v1.0.1, error severity)
+    verify_layer_balance(
+        ida_files, poi_files, findings,
+        extract_feature=get_feature_from_path, count_lines=count_code_lines,
+    )
+
+    # Stage: Red Flag heuristics (advisory only)
+    verify_red_flags_common(
+        ida_files, prx_files, poi_files, findings,
+        count_lines=count_code_lines,
+    )
+
+    errors = [f for f in findings if f["severity"] == "error"]
+    warnings = [f for f in findings if f["severity"] == "warning"]
 
     print(f"comsect1 code verification complete: {root_path}")
     print(f"Errors: {len(errors)}")
-    for e in sorted(errors, key=lambda item: (str(item["File"]), int(item["Line"]), str(item["Rule"]))):
-        print(f"- {e['File']}:{e['Line']} [{e['Rule']}] {e['Message']}")
+    if warnings:
+        print(f"Warnings (advisory): {len(warnings)}")
+    for e in sorted(errors, key=lambda item: (str(item["file"]), int(item["line"]), str(item["rule"]))):
+        print(f"- {e['file']}:{e['line']} [{e['rule']}] {e['message']}")
+    for w in sorted(warnings, key=lambda item: (str(item["file"]), int(item["line"]), str(item["rule"]))):
+        print(f"  (advisory) {w['file']}:{w['line']} [{w['rule']}] {w['message']}")
+
+    if errors:
+        print(f"\nGate FAILED -- {len(errors)} error(s) must be resolved.")
+    elif warnings:
+        print(f"\nGate passed -- {len(warnings)} advisory warning(s) for review.")
+    else:
+        print("\nGate passed -- no issues found.")
 
     if args.json_out:
         report = {

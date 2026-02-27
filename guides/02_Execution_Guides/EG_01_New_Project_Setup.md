@@ -1,4 +1,4 @@
-﻿# comsect1 New Project Guide
+# comsect1 New Project Guide
 
 Step-by-step guide for creating a new project with the 3-layer model (`ida_`/`prx_`/`poi_`).
 
@@ -32,53 +32,59 @@ Idea is independent from implementation details (HAL/BSP), not from realizable h
 
 ```text
 /MyProject
-  /codes/comsect1
-    /project
-      /config
-        cfg_project.h
-      /datastreams
-        stm_project_state.h
-      /features
-        /heater
-          ida_heater.c/h
-          prx_heater.c/h
-          poi_heater.c/h
-          cfg_heater.h
-          db_heater.h
-        /button
-          ida_button.c/h
-          poi_button.c/h
-    /infra
-      /bootstrap
-        ida_core.c/h
-        poi_core.c/h
-        cfg_core.h
-      /service
-      /platform
-        /hal
-        /bsp
-    /deps
-      /extern
-      /middleware
-  main.c
+  /codes
+    /comsect1
+      /api
+        api_<project>.h
+      /project
+        /config
+          cfg_project_<project>.h
+        /datastreams
+          stm_project_state.h
+        /features
+          /heater
+            ida_heater_<project>.c/h
+            prx_heater_<project>.c/h
+            poi_heater_<project>.c/h
+            cfg_heater_<project>.h
+            db_heater_<project>.h
+          /button
+            ida_button_<project>.c/h
+            poi_button_<project>.c/h
+      /infra
+        /bootstrap
+          ida_core_<project>.c/h
+          poi_core_<project>.c/h
+          cfg_core_<project>.h
+        /service
+        /platform
+          /hal
+          /bsp
+      /deps
+        /extern
+        /middleware
+    main.c
 ```
 
 ### 2.2 Naming Rules
 
-- Idea: `ida_<feature>.c/h`
-- Praxis: `prx_<feature>.c/h` (only when discriminator says PRX)
-- Poiesis: `poi_<feature>.c/h`
+- Main projects qualify internal file names as `<prefix>_<name>_<project>` (Section 8.6)
+- Idea: `ida_<feature>_<project>.c/h`
+- Praxis: `prx_<feature>_<project>.c/h` (only when discriminator says PRX)
+- Poiesis: `poi_<feature>_<project>.c/h`
+- Core files: `ida_core_<project>.c/h`, `poi_core_<project>.c/h`, `cfg_core_<project>.h`
+- Project target config: `cfg_project_<project>.h`
 - Datastream: `stm_<name>.h`
-- Resources: `cfg_*.h`, `db_*.h`
+- Resources: `cfg_<feature>_<project>.h`, `db_<feature>_<project>.h`
 
-### 2.3 Core Contract (`cfg_core.h`)
+### 2.3 Core Contract (`cfg_core_<project>.h`)
 
 Define shared contract vocabulary here:
 - `Result_t`
 - `Ida_Interface_t`
 - project contract enums (e.g., `Ida_Id_t`)
 
-Do not put target hardware config here.
+Do not put target hardware config here. Target hardware config belongs in `cfg_project_<project>.h`.
 
 ### 2.4 Build System
 
@@ -136,7 +142,7 @@ Idea file should answer WHAT/WHEN only.
 Checklist:
 - business decision is visible
 - no direct module/resource/platform include
-- only own `prx_`/`poi_` + `cfg_core.h`
+- only own `prx_`/`poi_` + `cfg_core_<project>.h`
 
 ### 3.2 Step 2: Apply 3-Question Discriminator
 
@@ -165,7 +171,17 @@ Poiesis responsibilities:
 
 No domain decisions in POI.
 
-### 3.5 Step 5: Wire Core
+### 3.5 Step 5: Extract Shared Services (if needed)
+
+If multiple features share the same computation logic, extract it into a `svc_` file under `/infra/service/`.
+
+Rules (Section 4.2.3):
+- each `svc_` file must include a header comment stating its purpose and consumer features
+- `svc_` must remain domain-agnostic (no feature coupling, no upper-layer include)
+
+Only extract when the logic is substantial and reused across two or more features. Do not create `svc_` for single-feature utilities.
+
+### 3.6 Step 6: Wire Core
 
 `ida_core`:
 - select features

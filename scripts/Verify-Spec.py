@@ -8,20 +8,50 @@ import re
 import sys
 from pathlib import Path
 
+from comsect1_gate_helpers import resolve_repo_root
+
 
 def add_issue(issues: list[str], message: str) -> None:
     issues.append(message)
 
 
+def has_utf8_bom(path: Path) -> bool:
+    return path.read_bytes().startswith(b"\xef\xbb\xbf")
+
+
 def get_file_text_utf8(path: Path) -> str:
-    # Use utf-8-sig to match prior PowerShell behavior and ignore optional BOM.
+    # Use utf-8-sig for parsing after BOM checks so content validation remains stable.
     return path.read_text(encoding="utf-8-sig")
 
 
-def resolve_repo_root(script_path: Path, repo_root_arg: str | None) -> Path:
-    if repo_root_arg:
-        return Path(repo_root_arg).resolve()
-    return (script_path.parent / "..").resolve()
+def iter_repo_text_files(repo_root: Path) -> list[Path]:
+    files: set[Path] = set()
+
+    fixed_files = [
+        repo_root / "README.md",
+        repo_root / "AGENTS.md",
+        repo_root / "CLAUDE.md",
+        repo_root / ".editorconfig",
+        repo_root / ".gitattributes",
+    ]
+    for file in fixed_files:
+        if file.is_file():
+            files.add(file)
+
+    glob_patterns = [
+        "specs/**/*.md",
+        "guides/**/*.md",
+        "tooling/**/*.md",
+        "tooling/**/*.ps1",
+        "tooling/**/*.sh",
+        "tooling/**/*.yaml",
+        "tooling/**/*.yml",
+        "scripts/**/*.py",
+    ]
+    for pattern in glob_patterns:
+        files.update(path for path in repo_root.glob(pattern) if path.is_file())
+
+    return sorted(files)
 
 
 def main() -> int:
@@ -43,6 +73,12 @@ def main() -> int:
         raise RuntimeError(f"No spec files found in: {specs_dir}")
 
     issues: list[str] = []
+    repo_text_files = iter_repo_text_files(repo_root)
+
+    for file in repo_text_files:
+        if has_utf8_bom(file):
+            rel_path = file.relative_to(repo_root).as_posix()
+            add_issue(issues, f"UTF-8 BOM is not allowed: {rel_path}")
 
     # Numbered sections: NN_slug.md
     # Appendices: A<index>_slug.md (e.g., A1_exception_handling.md)
@@ -113,6 +149,79 @@ def main() -> int:
                         f"specs/{spec_file.name}:{first[0]} ('{first[1].strip()}')",
                     )
 
+    # SSOT term consistency: detect use of inf_ as an actual file-role prefix
+    # in code examples or file references (not in rules that forbid it).
+    # Matches inf_<word>.<ext> used as a filename, excluding inline code backticks
+    # where the spec is explaining "do not use inf_".
+    inf_file_usage_re = re.compile(r"(?<!`)inf_\w+\.(?:c|h|py|cs|vb)\b")
+
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        in_code_block = False
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+            if stripped.startswith("#") or stripped.startswith(">"):
+                continue
+            if inf_file_usage_re.search(line):
+                add_issue(
+                    issues,
+                    f"SSOT term: specs/{spec_file.name}:{line_no} -- "
+                    f"inf_ file-role prefix used in example (§2.7.8: inf_ is forbidden)",
+                )
+
+    # Cross-reference validation: verify §X.Y and Section X.Y references
+    # Build heading registry from all spec files
+    section_heading_re = re.compile(
+        r"^#{1,6}\s+(?:(?P<major>\d+)\.(?P<minor>\d+(?:\.\d+)*)?)\s",
+    )
+    # Also match "Appendix X." headings
+    appendix_heading_re = re.compile(
+        r"^#{1,6}\s+Appendix\s+(?P<letter>[A-Z])(?P<minor>\d+)?\.?\s",
+    )
+    known_sections: set[str] = set()
+
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        for line in text.splitlines():
+            m = section_heading_re.match(line)
+            if m:
+                major = m.group("major")
+                minor = m.group("minor")
+                if minor:
+                    known_sections.add(f"{major}.{minor}")
+                known_sections.add(major)
+                continue
+            m = appendix_heading_re.match(line)
+            if m:
+                letter = m.group("letter")
+                app_minor = m.group("minor")
+                if app_minor:
+                    known_sections.add(f"A{app_minor}")
+                known_sections.add(f"Appendix {letter}")
+
+    # Scan for cross-references: §X.Y, Section X.Y, §X
+    xref_re = re.compile(r"(?:§|Section\s+)(\d+(?:\.\d+)*)")
+    for spec_file in spec_files:
+        text = get_file_text_utf8(spec_file)
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            # Skip lines that define headings (they are definitions, not references)
+            if line.lstrip().startswith("#"):
+                continue
+            for m in xref_re.finditer(line):
+                ref = m.group(1)
+                # Check if the major section exists
+                major_part = ref.split(".")[0]
+                if major_part not in known_sections and ref not in known_sections:
+                    add_issue(
+                        issues,
+                        f"Broken cross-reference '§{ref}': specs/{spec_file.name}:{line_no}",
+                    )
+
     # Lightweight README hygiene checks
     if readme_path.is_file():
         readme = get_file_text_utf8(readme_path)
@@ -127,6 +236,11 @@ def main() -> int:
     print(f"Issues: {len(issues)}")
     for message in issues:
         print(f"- {message}")
+
+    if issues:
+        print(f"\nGate FAILED -- {len(issues)} issue(s) must be resolved.")
+    else:
+        print("\nGate passed -- no issues found.")
 
     return 2 if issues else 0
 
