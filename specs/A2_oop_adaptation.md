@@ -36,6 +36,8 @@ The following are **language-invariant**. They hold in C, OOP, functional, and a
 8. Resource prefix semantics: `cfg_` / `db_` / `stm_` (Section 2.7.4)
 9. Core contract scope: `ida_core` (policy) + execution layer (Section 1.7)
 10. AIAD gate as acceptance criterion (Section 1.3.3)
+11. `svc_` placement: `/infra/service/` only (Section 7.5)
+12. No `inf_` role prefix: folder grouping does not change prefix semantics (Section 5.2.4)
 
 These invariants are **not relaxed** by adopting an OOP language.
 
@@ -58,22 +60,24 @@ In C, a `.c/.h` pair is the basic unit of encapsulation. In OOP, a **class** (or
 
 ### A2.2.2 Idea Layer in OOP
 
-An Idea class contains **pure domain logic**: immutable, referentially transparent methods that compute, decide, and validate using only language primitives and types defined in the core contract.
+An Idea class contains **business decisions, policy, and flow** (Section 4.1.2). It uses only language primitives and types defined in the core contract (`cfg_core.h` equivalent).
 
 Two valid forms:
 
-**(a) Static utility class** — all methods are static/shared, no fields. Equivalent to the C pattern.
+**(a) Static utility class** — all methods are static/shared, no instance fields. Direct equivalent of C's `ida_*.c` functions.
 
-**(b) Immutable value type** — readonly fields set at construction, pure methods. No mutable state, no side effects. This is the OOP-native form: an object that IS something but does not change.
+**(b) Value type** — readonly fields set at construction. OOP-native form where an object carries context needed for decisions. This form has no C equivalent; it is an OOP accommodation.
 
-Characteristics (both forms):
-- **Referentially transparent**: same inputs always produce same outputs, regardless of call order
-- **No mutable state**: no mutable fields, properties, or external side effects
-- No external namespace imports (no I/O, UI, networking, serialization, or framework APIs)
-- May reference core contract types (the OOP equivalent of `cfg_core.h`)
-- May call its own `prx_` and `poi_` classes
+Allowed (both forms, per Section 4.1.2):
+- Business decisions, policy, flow
+- Reference to core contract types (`cfg_core.h` equivalent)
+- Call to own `prx_` and `poi_` classes
 
-The Idea class is the OOP expression of ἰδέα: the uncorrupted archetype that exists independent of its material expression. Plato's Form is not the absence of being — it is *eternal, unchanging* being. An immutable value object with pure methods is a faithful expression of this concept: it IS something, it just does not change.
+Prohibited (both forms, per Section 4.1.2):
+- External namespace imports (I/O, UI, networking, serialization, framework APIs)
+- Feature resources (`cfg_<feature>`, `db_`, `stm_`)
+- Infra capability (`mdw_`, `svc_`, `hal_`, `bsp_`)
+- Other feature files
 
 ### A2.2.3 Praxis Layer in OOP
 
@@ -196,28 +200,20 @@ No change from Section 2.3. Restatement with OOP vocabulary:
 
 ## A2.5 OOP-Specific Considerations
 
-### A2.5.1 Idea Purity: Immutability, Not Statelessness
+### A2.5.1 Idea Constraints: Dependency-Based
 
-In C, `ida_` functions are inherently stateless because the language lacks object encapsulation. In OOP, the same invariant is expressed differently.
+In C, `ida_` purity is enforced through **dependency restrictions** (Section 4.1.2, Section 5.1): no external includes beyond `cfg_core.h` and own `prx_`/`poi_`. The same principle governs OOP.
 
-**Idea classes MUST be immutable and referentially transparent.**
+The governing constraint for Idea is **what it depends on**, not mutability:
 
-- No mutable fields or properties.
-- Methods produce outputs determined solely by their inputs and the object's immutable state.
-- No side effects: no I/O, no modifying external state, no observable interaction with the world.
-- Both static utility classes (form a) and immutable value types (form b) satisfy this rule (A2.2.2).
+- No external namespace imports
+- No feature resource access (`cfg_<feature>`, `db_`, `stm_`)
+- No infra capability access (`mdw_`, `svc_`, `hal_`, `bsp_`)
+- Only `cfg_core` equivalent and own `prx_`/`poi_`
 
-**What is permitted:**
-- Readonly/final fields set at construction (immutable state)
-- Pure methods that compute from immutable fields and parameters
-- Immutable domain value objects (e.g., a chromaticity coordinate with methods)
+Static utility classes (form a) naturally match C's `ida_` functions. Value types with readonly fields (form b) are an OOP accommodation for carrying decision context.
 
-**What is prohibited:**
-- Mutable fields or properties
-- Methods that modify external state or depend on call order
-- Lazy initialization or caching (introduces hidden temporal coupling)
-
-Rationale: The invariant is not the absence of being but the absence of change. Plato's ἰδέα is the eternal Form — it IS something, it just does not change. Temporal coupling (mutable state, call-order dependency) is the implementation leakage that this rule prevents. Immutability preserves purity; statelessness was merely C's mechanism for achieving it.
+**Recommendation**: Prefer stateless static methods (form a) as the default. Use form (b) only when decision context must be carried across method calls within the same Idea class.
 
 ### A2.5.2 Shared Domain Utilities
 
@@ -229,12 +225,12 @@ Three categories for shared logic in OOP:
 
 | Category | Prefix/Location | Accessible from | When to use |
 |---|---|---|---|
-| **Contract vocabulary** | `cfg_Core` (core contract scope) | All layers including Idea | Trivial domain types, constants, and simple utility functions that define the shared language |
+| **Contract vocabulary** | `cfg_Core` (core contract scope) | All layers including Idea | Domain types, constants that define the shared language (Section 5.2.3) |
 | **Domain computation service** | `svc_` prefix class | Praxis/Poiesis only | Substantial computation reused across features |
 | **Feature-internal utility** | Inside the feature's layer files | Within the feature only | Logic specific to one feature |
 
 Decision rule:
-1. Is the logic **trivial and part of the domain vocabulary** (type conversions, coordinate scaling, basic math)? → `cfg_Core`
+1. Is the logic **part of the domain vocabulary** (types, constants, enums)? → `cfg_Core`
 2. Is the logic **substantial computation reused across multiple features**? → `svc_` service, accessed through Praxis/Poiesis
 3. Do two "features" need to share Idea-level logic directly? → They are one feature; merge them
 
@@ -276,7 +272,37 @@ Benefits:
 
 The Idea Interface Object (Section 1.7, A2.2.5) — the feature's public contract (`Init`, `Main`) — resides in the **core contract scope** (`cfg_Core`), not inside any layer file. Feature-internal interfaces between layers reside at the **feature root** level.
 
-### A2.5.5 Praxis Justification Threshold
+### A2.5.5 Core Scope in OOP
+
+Section 4.0 defines the bootstrap core scope. In OOP, the same structure applies:
+
+| Core layer | Prefix | Location | Primary role |
+|---|---|---|---|
+| Core Idea | `ida_core` | `/infra/bootstrap/` | Feature registration policy and orchestration intent |
+| Core Poiesis | `poi_core` | `/infra/bootstrap/` | Host/scheduler wrapping and task registration execution |
+| Core Praxis (optional) | `prx_core` | `/infra/bootstrap/` | Externally-coupled interpretation in core context |
+| Core Contract | `cfg_core` | `/infra/bootstrap/` | Contract vocabulary accessible by ALL layers |
+
+OOP-specific mapping:
+- `ida_core` collects feature interface objects (OOP equivalent of `#include "ida_<feature>.h"` for registration)
+- `poi_core` wraps the host execution model (event loop, task scheduler, application framework entry point)
+- `cfg_core` defines shared contract types (enums, value types, constants)
+
+Dependency rules from Section 4.0 apply without modification:
+- `ida_core` → feature `ida_*` interfaces, `poi_core`, `cfg_core`
+- `ida_core` must NOT reference `mdw_`, `svc_`, `hal_`, `bsp_`, or feature `prx_`/`poi_`
+- `poi_core` → `mdw_` (scheduler/host middleware), `cfg_core`
+- `poi_core` must NOT reference feature `ida_*` or HAL/BSP directly
+
+Execution models (Section 4.0.8) map to OOP hosts:
+
+| Model | `poi_core` OOP behavior |
+|---|---|
+| Console / service | Sequentially dispatch each feature main entry |
+| WinForms / WPF | Register features with application event loop |
+| ASP.NET / web | Register features as middleware/services |
+
+### A2.5.6 Praxis Justification Threshold
 
 Praxis is **optional** in every feature. The discriminator's Q3 ("inseparable domain judgment coupled to external types?") sets a high bar.
 
@@ -293,7 +319,7 @@ Example where Praxis IS needed: LIN gateway response parsing where frame timing 
 
 Example where Praxis is NOT needed: reading a file — the decision "which file to read" is Idea, the reading itself is Poiesis, and an interface bridges them cleanly.
 
-### A2.5.6 Feature-Centric Co-location
+### A2.5.7 Feature-Centric Co-location
 
 The co-location principle (Section 3.1) applies in OOP:
 
@@ -304,19 +330,24 @@ All layer files for a feature reside together — in the same folder, package, o
     ida_Gamut.ext
     prx_Gamut.ext        (if discriminator requires)
     poi_Gamut.ext        (if discriminator requires)
-    cfg_Gamut.ext
-    db_Gamut.ext
+    cfg_Gamut.ext        (feature-local config)
 ```
 
-### A2.5.7 Data Plane in OOP (stm_)
+Resource placement follows Section 7.6:
+- Feature-local `cfg_`: in feature folder
+- Project-wide `cfg_` and `db_`: in `/project/config/`
+- Core contract `cfg_core`: in `/infra/bootstrap/`
+- Datastream `stm_`: in `/project/datastreams/`
 
-In C, `stm_` headers expose shared runtime state. In OOP, the data plane can be expressed through:
+### A2.5.8 Data Plane in OOP (stm_)
 
-- Shared state container objects
-- Event bus / observer pattern
-- Message queue / pub-sub mechanism
+In C, `stm_` headers expose shared runtime state. In OOP, `stm_` maps to **shared state container objects** — the direct equivalent of C's `stm_` headers.
 
-The mechanism is a design choice. The invariant: **inter-feature communication uses the data plane only; direct import of another feature's layer classes is prohibited.**
+The invariant from Section 5.2.2: **inter-feature communication uses the data plane (`stm_`) only; direct import of another feature's layer classes is prohibited.**
+
+`stm_` placement follows Section 7.6:
+- Project-specific inter-feature state: `/project/datastreams/`
+- Reusable datastream definitions: `/deps/middleware/` or dependency-provided
 
 ---
 
@@ -348,13 +379,13 @@ Praxis or Poiesis receives Idea as a constructor parameter or interface.
 
 Impact: lower layer calls upward; dependency inversion misused to circumvent direction rules.
 
-### A2.6.4 Idea Holding Mutable State
+### A2.6.4 Idea Accessing Feature Resources
 
-**Violation:** Idea purity (A2.5.1).
+**Violation:** Idea dependency restrictions (Section 4.1.2).
 
-Idea class declares mutable fields or properties. Immutable readonly fields are permitted (A2.2.2 form b); mutable state is not.
+Idea class accesses `cfg_<feature>`, `db_`, `stm_`, or any feature resource directly.
 
-Impact: temporal coupling; test order sensitivity; referential transparency lost.
+Impact: Idea becomes coupled to feature implementation detail; the decision/policy layer acquires hidden dependencies on data format and runtime state.
 
 ### A2.6.5 Cross-Feature Layer Import
 
@@ -417,7 +448,7 @@ The AIAD gate (Section 1.3, Section 11) must verify OOP-specific rules:
 | Heuristic | Concern | Action |
 |-----------|---------|--------|
 | `poi_` file with complex domain conditionals | Possible PRX/POI role collapse | Manual review recommended |
-| `ida_` class with mutable instance state | Possible purity violation | Manual review recommended |
+| `ida_` class with feature resource access | Possible dependency restriction violation | Manual review recommended |
 
 ---
 
