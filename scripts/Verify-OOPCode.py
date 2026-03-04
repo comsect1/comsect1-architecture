@@ -119,11 +119,23 @@ def extract_class_name(file_path: Path) -> str:
 
 
 def extract_feature_name(file_path: Path) -> str | None:
-    """Extract the feature name from a prefixed filename.
-    e.g. ida_ColorConversion.vb -> ColorConversion
-         prx_LinProtocol.vb -> LinProtocol
+    """Extract the feature name for cross-feature reference checking.
+
+    Two modes (folder-based takes priority):
+    1. Folder-based: if file is in .../features/<feature_name>/..., use folder name.
+       Supports feature-scoped layouts where multiple layer files share a folder.
+    2. Filename-based: extract from prefix (e.g. ida_Motor -> Motor).
+       Fallback for flat layouts where each file IS a feature.
+
     Returns None if no recognized prefix or if it's a shared resource.
     """
+    # Mode 1: Folder-based feature identification (A2.5.7 feature-centric co-location)
+    parts = file_path.parts
+    for i, part in enumerate(parts):
+        if part.lower() == "features" and i + 1 < len(parts):
+            return parts[i + 1]
+
+    # Mode 2: Filename-based (flat layout fallback)
     stem = file_path.stem.lower()
     for prefix in ROLE_PREFIXES:
         if stem.startswith(prefix):
@@ -247,7 +259,7 @@ def verify_reverse_dependencies(file_path: Path, role: str, role_map: dict,
 
 
 # ---------------------------------------------------------------------------
-# Stage 3: Cross-feature layer reference check (A2.6.5)
+# Stage 3: Cross-feature layer reference check (A2.6.6)
 # ---------------------------------------------------------------------------
 
 def verify_cross_feature_references(file_path: Path, role: str, all_layer_files: list[Path],

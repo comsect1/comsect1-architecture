@@ -73,11 +73,12 @@ Allowed (both forms, per Section 4.1.2):
 - Reference to core contract types (`cfg_core.h` equivalent)
 - Call to own `prx_` and `poi_` classes
 
-Prohibited (both forms, per Section 4.1.2):
-- External namespace imports (I/O, UI, networking, serialization, framework APIs)
-- Feature resources (`cfg_<feature>`, `db_`, `stm_`)
-- Infra capability (`mdw_`, `svc_`, `hal_`, `bsp_`)
-- Other feature files
+Prohibited (both forms):
+- External namespace imports (I/O, UI, networking, serialization, framework APIs) — self-containment, Section 1.6.2
+- Feature resources (`cfg_<feature>`, `db_`, `stm_`) — self-containment, Section 4.1.2
+- Infra capability (`mdw_`, `svc_`, `hal_`, `bsp_`) — self-containment, Section 4.1.2
+- Other feature files — self-containment, Section 5.2.2
+- Mutable instance state — purity, Section 2.7.9 "Idea remains stateless"
 
 ### A2.2.3 Praxis Layer in OOP
 
@@ -200,18 +201,42 @@ No change from Section 2.3. Restatement with OOP vocabulary:
 
 ## A2.5 OOP-Specific Considerations
 
-### A2.5.1 Idea Constraints: Dependency-Based
+### A2.5.1 Idea Constraints: Self-Containment and Purity
 
-In C, `ida_` purity is enforced through **dependency restrictions** (Section 4.1.2, Section 5.1): no external includes beyond `cfg_core.h` and own `prx_`/`poi_`. The same principle governs OOP.
+Two orthogonal constraints govern Idea. Both originate from the base specification and are **not relaxed** by adopting an OOP language.
 
-The governing constraint for Idea is **what it depends on**, not mutability:
+**1. Self-containment (dependency dimension, Section 1.6.2, Section 4.1.2):**
 
-- No external namespace imports
-- No feature resource access (`cfg_<feature>`, `db_`, `stm_`)
-- No infra capability access (`mdw_`, `svc_`, `hal_`, `bsp_`)
-- Only `cfg_core` equivalent and own `prx_`/`poi_`
+What Idea may depend on:
 
-Static utility classes (form a) naturally match C's `ida_` functions. Value types with readonly fields (form b) are an OOP accommodation for carrying decision context.
+- Own `prx_`/`poi_` classes
+- Core contract types (`cfg_core` equivalent)
+
+What Idea must not depend on:
+
+- External namespace imports (I/O, UI, networking, serialization, framework APIs)
+- Feature resources (`cfg_<feature>`, `db_`, `stm_`)
+- Infra capability (`mdw_`, `svc_`, `hal_`, `bsp_`)
+- Other feature files
+
+**2. Purity (behavioral dimension, Section 2.7.9 "Idea remains stateless"):**
+
+In C, `ida_` is stateless: no file-scope `static` variables. Functions operate on parameters only. The OOP equivalent is **immutability and referential transparency**:
+
+- No mutable instance fields — state, once constructed, does not change
+- Same inputs produce same outputs — no hidden side effects
+
+Two valid forms:
+
+**(a) Static utility class** — all methods are static/shared, no instance fields. Direct equivalent of C's `ida_*.c` functions. **Preferred default.**
+
+**(b) Value type** — readonly fields set at construction. OOP accommodation where an object carries context needed for decisions. The readonly fields are analogous to curried parameters: frozen at construction time, immutable thereafter.
+
+Both forms satisfy purity: no mutable state means no hidden side effects; referential transparency means same inputs always produce same outputs.
+
+**Why both constraints are necessary:**
+
+Satisfying only self-containment (no external imports) while allowing mutable state would make Idea state-dependent — its behavior changes over time based on internal mutation. This violates "Idea remains stateless" (Section 2.7.9) and "pure, uncorrupted archetype that exists independent of its material expression" (Section 1.4).
 
 **Recommendation**: Prefer stateless static methods (form a) as the default. Use form (b) only when decision context must be carried across method calls within the same Idea class.
 
@@ -381,13 +406,21 @@ Impact: lower layer calls upward; dependency inversion misused to circumvent dir
 
 ### A2.6.4 Idea Accessing Feature Resources
 
-**Violation:** Idea dependency restrictions (Section 4.1.2).
+**Violation:** Idea self-containment (Section 1.6.2, Section 4.1.2).
 
 Idea class accesses `cfg_<feature>`, `db_`, `stm_`, or any feature resource directly.
 
 Impact: Idea becomes coupled to feature implementation detail; the decision/policy layer acquires hidden dependencies on data format and runtime state.
 
-### A2.6.5 Cross-Feature Layer Import
+### A2.6.5 Idea Holding Mutable State
+
+**Violation:** Idea purity (Section 2.7.9 "Idea remains stateless").
+
+Idea class declares mutable instance fields, public setters, or void methods with side effects on internal state.
+
+Impact: Idea behavior becomes state-dependent; the same method call can produce different results depending on prior mutations. This violates "pure, uncorrupted archetype" (Section 1.4) and breaks referential transparency.
+
+### A2.6.6 Cross-Feature Layer Import
 
 **Violation:** feature isolation (Section 2.7.3).
 
@@ -397,7 +430,7 @@ Impact: tight coupling between features; changes in B propagate into A's adaptat
 
 Correct: use `stm_` data plane for inter-feature communication.
 
-### A2.6.6 God-Class (Layer Collapse)
+### A2.6.7 God-Class (Layer Collapse)
 
 **Violation:** layer role clarity (Section 10.4).
 
@@ -448,7 +481,8 @@ The AIAD gate (Section 1.3, Section 11) must verify OOP-specific rules:
 | Heuristic | Concern | Action |
 |-----------|---------|--------|
 | `poi_` file with complex domain conditionals | Possible PRX/POI role collapse | Manual review recommended |
-| `ida_` class with feature resource access | Possible dependency restriction violation | Manual review recommended |
+| `ida_` class with feature resource access | Possible self-containment violation (Section 1.6.2) | Manual review recommended |
+| `ida_` class with mutable instance fields | Possible purity violation (Section 2.7.9) | Manual review recommended |
 
 ---
 
