@@ -12,7 +12,8 @@ Setup guide for configuring comsect1 architecture rules on a new PC with Claude 
 
 ## Directory Structure
 
-Claude Code reads global configuration from `~/.claude/`. Copy the following files:
+Claude Code reads global configuration from `~/.claude/`. The install script
+copies template files and substitutes `{{COMSECT1_ROOT}}` with your clone path.
 
 ```
 ~/.claude/
@@ -36,33 +37,62 @@ Claude Code reads global configuration from `~/.claude/`. Copy the following fil
 
 ## Installation
 
-### Step 1: Clone the architecture repository
+### Automated (recommended)
 
 ```bash
-git clone <comsect1-architecture-repo> /tmp/comsect1-arch
+# Clone the architecture repository
+git clone <comsect1-architecture-repo>
+cd comsect1-architecture
+
+# Bash / Git Bash on Windows / macOS / Linux
+bash tooling/claude-code/install.sh
 ```
 
-### Step 2: Create directories and copy files
+PowerShell (Windows):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tooling\claude-code\install.ps1
+```
+
+The script:
+1. Detects the repo root automatically
+2. Replaces `{{COMSECT1_ROOT}}` with the absolute path to your clone
+3. Copies files to `~/.claude/` (existing files are backed up as `.bak`)
+
+### Manual
 
 ```bash
 mkdir -p ~/.claude/rules
 mkdir -p ~/.claude/agents/comsect1-reviewer
 mkdir -p ~/.claude/skills/comsect1-analyze
 
-SRC="/tmp/comsect1-arch/tooling/claude-code"
+SRC="<your-clone-path>/tooling/claude-code"
 
-cp "$SRC/rules/comsect1.md"                   ~/.claude/rules/
-cp "$SRC/agents/comsect1-reviewer/AGENT.md"    ~/.claude/agents/comsect1-reviewer/
-cp "$SRC/skills/comsect1-analyze/SKILL.md"     ~/.claude/skills/comsect1-analyze/
+# Copy and substitute {{COMSECT1_ROOT}} with your clone path
+for f in rules/comsect1.md agents/comsect1-reviewer/AGENT.md skills/comsect1-analyze/SKILL.md; do
+  sed "s|{{COMSECT1_ROOT}}|<your-clone-path>|g" "$SRC/$f" > ~/.claude/$f
+done
 ```
 
-### Step 3: Verify
+### Verify
 
 Launch Claude Code in any project and check:
 
 1. **Global rules loaded** — comsect1.md appears in system context automatically
-2. **Reviewer agent available** — `comsect1-reviewer` appears as a subagent type in Task tool
+2. **Reviewer agent available** — `comsect1-reviewer` appears as a subagent type
 3. **Analyze skill available** — `/comsect1-analyze` is listed as an invocable skill
+
+## Design Principle: Reference, Not Embed
+
+All installed files **reference** the cloned repo path via `{{COMSECT1_ROOT}}` —
+they contain no embedded architecture rules. When the spec is updated:
+
+- `git pull` updates the canonical spec files
+- Installed rules, agent, and skill read the spec at runtime
+- **No reinstall needed** for spec content changes
+
+Reinstall is only needed when the template files themselves change
+(new checks, new procedure steps, structural changes to the config files).
 
 ## File Descriptions
 
@@ -70,22 +100,19 @@ Launch Claude Code in any project and check:
 
 Global architecture rules loaded into every Claude Code session. Contains:
 
-- Philosophical stance (asymptotic awareness)
-- 3-Layer Feature Model (ida_ / prx_ / poi_)
-- 3-Question Discriminator
-- Dependency direction invariant
-- OOP Adaptations (A2)
-- Resource prefix definitions (cfg_ / db_ / stm_ / svc_ / mdw_ / hal_ / bsp_)
+- Canonical spec SSOT pointer with file index
 - AIAD Gate script references
-- Rule Application Meta-Principle
+- Rule Application Meta-Principle (how to reason about rules)
 - Agent Output Verification (subagent report reliability rules)
+- Project-specific working rules section (user-customizable)
 - User preferences (conversation language, artifact language)
 
 ### agents/comsect1-reviewer/AGENT.md
 
-Specialized subagent for architecture compliance review. Read-only — reports violations without modifying files. Checks:
+Specialized subagent for architecture compliance review. Read-only — reports
+violations without modifying files. Reads the canonical spec at runtime and checks:
 
-- Idea layer purity (self-containment + behavioral purity)
+- Idea layer purity
 - Reverse dependency violations
 - Cross-feature isolation
 - Platform and resource boundary compliance
@@ -96,7 +123,8 @@ Specialized subagent for architecture compliance review. Read-only — reports v
 
 ### skills/comsect1-analyze/SKILL.md
 
-User-invocable skill (`/comsect1-analyze [target]`) for architectural analysis of a codebase. Performs:
+User-invocable skill (`/comsect1-analyze [target]`) for architectural analysis.
+Reads the canonical spec at runtime and performs:
 
 1. Environment identification (language, framework, architecture variant)
 2. Existing comsect1 status scan
@@ -124,15 +152,13 @@ python Verify-Comsect1Code.py               # C/embedded projects
 python Verify-AIADGate.py                   # Unified runner
 ```
 
-## Updating Rules
+## Updating
 
-When global rules change:
-
-1. Update the source files in this repository (`tooling/claude-code/`)
-2. Push to remote
-3. On each target machine: `git pull` and re-copy files to `~/.claude/`
-
-Rules take effect on the next Claude Code session.
+| What changed | Action needed |
+|-------------|---------------|
+| Spec content (`specs/`) | `git pull` only — installed files read spec at runtime |
+| Template files (`tooling/claude-code/`) | `git pull` then re-run install script |
+| Gate scripts (`scripts/`) | `git pull` only — scripts run from repo directly |
 
 ## Troubleshooting
 
@@ -141,4 +167,5 @@ Rules take effect on the next Claude Code session.
 | Rules not loaded | File not at correct path | Verify `~/.claude/rules/comsect1.md` exists |
 | Agent not available | AGENT.md missing or malformed | Check frontmatter YAML in AGENT.md |
 | Skill not listed | SKILL.md missing or malformed | Check frontmatter YAML in SKILL.md |
+| Spec not found at runtime | `{{COMSECT1_ROOT}}` not substituted | Re-run install script |
 | Korean conversation but English artifacts | Working as intended | User preference in comsect1.md |

@@ -3,66 +3,30 @@
 This user applies comsect1 architecture across all programming projects.
 These rules are always active regardless of project context.
 
-## Philosophical Stance
+## Canonical Specification (SSOT)
 
-- **The Order** is the unreachable ideal. Architecture is continuous alignment toward it.
-- **NEVER** claim architecture, specification, or any work is "complete" or "finished."
-- comsect1 operates in the **asymptotic awareness** stance: knowing the direction, acknowledging the unbridgeable distance, persisting in the approach.
-- Claiming completion is the **Delusion** stance — the second of three stances (Ignorance, Delusion, Asymptotic Awareness).
-- Quality is judged by **continuity of alignment**, not static completion (Great Alignment).
+**Location**: `{{COMSECT1_ROOT}}/specs/`
 
-## 3-Layer Feature Model
+Before writing, reviewing, or refactoring any comsect1 code, you MUST read the
+relevant canonical specification files. Do NOT rely on summaries, memory, or
+rules in this file — the canonical spec is the single source of truth.
 
-| Layer | Prefix | Role | Question |
-|-------|--------|------|----------|
-| **Idea** | `ida_` | Pure intent and domain decisions | WHAT/WHEN |
-| **Praxis** | `prx_` | Domain interpretation coupled to external types | WHAT-in-HOW (inseparable) |
-| **Poiesis** | `poi_` | Mechanical production / wrapping | HOW (no domain judgment) |
+### Spec index (read as needed)
 
-## 3-Question Discriminator (Mandatory)
+| File | Covers |
+|------|--------|
+| `01_philosophy.md` | The Order, asymptotic awareness, philosophical stance |
+| `02_overview.md` | 3-layer model, 3-question discriminator, SSOT (§2.7) |
+| `04_layer_roles.md` | ida_/prx_/poi_ role constraints |
+| `05_dependency_rules.md` | Dependency direction invariant, access rules |
+| `07_folder_structure.md` | Canonical folder layout and placement |
+| `08_naming_conventions.md` | Prefix definitions (cfg_/db_/stm_/svc_/mdw_/hal_/bsp_) |
+| `10_anti_patterns.md` | Common violations and why they're harmful |
+| `11_checklist.md` | Post-task verification checklist |
+| `A2_oop_adaptation.md` | OOP layer mapping, discriminator, ida_ purity (A2.5.1) |
 
-1. External dependency required? No → `ida_`. Yes → Q2.
-2. Separable domain judgment? Yes → split `ida_` + `poi_`. No → Q3.
-3. Inseparable domain judgment coupled to external types? Yes → `prx_`. No → `poi_`.
-
-## Dependency Direction (Invariant)
-
-```
-IDA → { own PRX, own POI }
-PRX → { own POI, mdw_, svc_, hal_, cfg_, db_, stm_ }
-POI → { mdw_, svc_, hal_, cfg_, db_, stm_ }
-Feature ↔ Feature: stm_ only
-Platform: HAL → BSP
-```
-
-- ida_ must NOT access cfg_/db_/stm_/mdw_/svc_/hal_/bsp_ directly (only cfg_core equivalent).
-- prx_/poi_ must NOT reference another feature's ida_/prx_/poi_.
-
-## Key OOP Adaptations (A2)
-
-> These rules apply to OOP languages (C#, Java, etc.) only. For C/embedded, Idea remains stateless per specs/02_overview.md.
-
-- **Idea constraints** (OOP) — two orthogonal axes, both mandatory:
-  1. **Self-containment** (dependency): no external imports, no feature resources, no infra capability.
-  2. **Purity** (behavioral): immutable + referentially transparent (OOP equivalent of C's stateless, §2.7.9).
-  - Static utility class (form a, preferred default) OR value type with readonly fields (form b, OOP accommodation).
-- **Praxis is optional** with high justification bar. ida_ ↔ poi_ via interface is often sufficient in OOP.
-- **Interface-Owned Layer Boundaries**: upper layer owns interface, lower layer implements.
-- **Shared Domain Utilities**: cfg_Core (contract vocabulary) / svc_ (shared computation) / feature-internal.
-- `svc_` placement: `/infra/service/` only (A2.1 #11).
-- No `inf_` role prefix: folder grouping does not change prefix semantics (A2.1 #12).
-
-## Resource Prefixes
-
-| Prefix | Meaning |
-|--------|---------|
-| `cfg_` | Compile-time configuration |
-| `db_`  | Compile-time static data tables |
-| `stm_` | Runtime datastreams (cross-feature data plane) |
-| `svc_` | Shared domain service (capability plane) |
-| `mdw_` | Middleware (capability plane) |
-| `hal_` | Hardware Abstraction Layer |
-| `bsp_` | Board Support Package |
+This file does NOT restate, summarize, or interpret the canonical spec.
+If something is defined in the canonical spec, read the spec — do not look here.
 
 ## AIAD Gate
 
@@ -82,6 +46,45 @@ Platform: HAL → BSP
 - **Stage 0 (meta-advisory)**: Detects spec file modifications and reminds about upstream alignment.
 - **Red Flag heuristics**: Empty Idea, Fat Praxis, Fat Poiesis — advisory warnings, not blocking errors.
 
+## Pre-Generation Discriminator (Mandatory)
+
+Before writing or refactoring ANY ida_/prx_/poi_ code, you MUST:
+
+1. **Explicitly answer the 3-question discriminator** for each code unit.
+   Document your answers — do not apply the discriminator silently.
+
+2. **Produce a layer assignment** before generating code:
+   ```
+   Feature: [name]
+   Q1 (external dep?): [Yes/No] → [result]
+   Q2 (separable judgment?): [Yes/No] → [split ida_ + poi_ / go Q3]
+   Q3 (inseparable coupling?): [Yes/No] → [prx_ / poi_]
+   ```
+
+3. **Verify layer balance BEFORE submitting**:
+   - ida_ MUST contain domain decisions (conditionals with business meaning).
+     A one-line forwarding call is NOT a domain decision.
+   - poi_ MUST NOT contain domain-semantic conditionals.
+     If poi_ has `if/switch/case` based on business rules, those belong in ida_.
+   - If a requirement change would only touch poi_ (not ida_), the domain
+     decision is in the wrong layer.
+
+**The test:** Can you read ida_ alone and understand WHAT the feature decides
+and WHEN it acts? If ida_ reads as a forwarding table, it is empty.
+
+## Layer Balance Invariant
+
+For each feature, compare the "decision weight" across layers:
+
+| Check | Condition | Verdict |
+|-------|-----------|---------|
+| ida_ has zero conditionals | poi_ or prx_ has conditionals with business meaning | **VIOLATION: Empty Idea + Fat Poiesis** |
+| ida_ only delegates | All domain logic resides in prx_/poi_ | **VIOLATION: Inverted layers** |
+| ida_ has domain decisions | poi_ is pure wrapping/forwarding | **Correct** |
+
+This is NOT advisory. This is a structural invariant equal in severity to
+dependency direction violations. Treat it as an error.
+
 ## Rule Application Meta-Principle
 
 - When applying any rule, first ask: **"Why does this rule exist?"**
@@ -98,6 +101,15 @@ Platform: HAL → BSP
 - Agents can mix content across multiple sources when synthesizing reports — **source attribution is not trustworthy**
 - File listing, directory structure, and pattern search results are relatively reliable
 - **Never derive conclusions from agent reports without primary source verification**
+
+## Project-Specific Working Rules
+
+<!-- Add project-specific rules below this line.                    -->
+<!-- These rules should NOT restate canonical spec content.         -->
+<!-- Example entries:                                               -->
+<!--   - No new direct access to mutable globals from Form_*.      -->
+<!--   - New state mutation must go through IColorStateStore.       -->
+<!--   - Host adapters (Form_*.vb) live outside the comsect1/ boundary. -->
 
 ## User Preferences
 

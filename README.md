@@ -24,12 +24,66 @@ a normative specification that AI agents can read, understand, and enforce.
 |   |-- 00_*              Onboarding & process overview
 |   |-- 01_Design_*/      Core architecture & realtime design principles
 |   |-- 02_Execution_*/   New project, refactoring, testing, build
-|   `-- 03_Verification/  Post-task checklist & AIAD auto gate
+|   |-- 03_Verification/  Post-task checklist & AIAD auto gate
+|   `-- 04_Meta_Eval*/    Upstream alignment evaluation
 |-- scripts/              Verification & scaffolding tools
+|-- tooling/              AI agent configuration templates
+|   `-- claude-code/      Claude Code rules, sub-agent, skill, install scripts
 |-- CLAUDE.md             AI agent operational guidelines
 |-- LICENSE               CC BY-NC-ND 4.0 (specs) + MIT (scripts)
 `-- README.md             This file
 ```
+
+---
+
+## AIAD Setup for Claude Code
+
+This repository ships Claude Code configuration files that enable AI-assisted
+comsect1 architecture enforcement across your projects.
+
+### What You Get
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| `comsect1.md` | Rule | Points Claude to the canonical spec as SSOT |
+| `comsect1-reviewer` | Sub-agent | Scans code for architecture violations (read-only) |
+| `comsect1-analyze` | Skill | Analyzes a codebase for comsect1 compliance |
+
+All configuration files **reference** the cloned repo path — they contain no
+embedded rules. When the spec is updated, `git pull` is all you need.
+
+### Quick Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/comsect1/comsect1-architecture.git
+
+# Run the install script (bash / Git Bash on Windows)
+bash comsect1-architecture/tooling/claude-code/install.sh
+```
+
+PowerShell (Windows):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File comsect1-architecture\tooling\claude-code\install.ps1
+```
+
+The script installs rules, sub-agent, and skill into `~/.claude/`,
+substituting the spec path automatically. Existing files are backed up as `.bak`.
+
+### Manual Setup
+
+See [`tooling/claude-code/`](./tooling/claude-code/) for template files.
+Copy them to `~/.claude/` and replace `{{COMSECT1_ROOT}}` with the absolute path
+to your clone of this repository.
+
+### After Setup
+
+In any project, Claude Code will:
+1. Read the canonical spec from this repo before writing or reviewing comsect1 code
+2. Apply the 3-question discriminator for layer placement decisions
+3. Enforce dependency rules and folder structure conventions
+4. Run AIAD gate scripts when available
 
 ---
 
@@ -134,7 +188,8 @@ Guides: [Post-Task Checklist](./guides/03_Verification/V_01_Post_Task_Checklist.
 | 11. Checklist | [11_checklist.md](./specs/11_checklist.md) |
 | 12. History | [12_version_history.md](./specs/12_version_history.md) |
 | 13. Middleware | [13_middleware_guideline.md](./specs/13_middleware_guideline.md) |
-| Appendix A | [A1_exception_handling.md](./specs/A1_exception_handling.md) |
+| Appendix A1 | [A1_exception_handling.md](./specs/A1_exception_handling.md) |
+| Appendix A2 | [A2_oop_adaptation.md](./specs/A2_oop_adaptation.md) |
 
 ---
 
