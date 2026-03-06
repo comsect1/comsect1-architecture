@@ -261,6 +261,8 @@ Decision rule:
 
 This classification resolves the apparent conflict: Idea may reference `cfg_Core` (core contract, allowed by Section 2.7.3), Praxis/Poiesis may reference `svc_` services (allowed by Section 2.7.3), and no feature-to-feature layer reference is needed.
 
+Service documentation and lifecycle rules from Section 4.2.3 apply equally to OOP `svc_` classes: each must document its purpose and consumers, and must be reviewed for consolidation when consuming features change.
+
 ### A2.5.3 Inheritance Across Layers
 
 OOP inheritance creates an implicit dependency: a derived class depends on its base class.

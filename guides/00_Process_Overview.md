@@ -49,7 +49,7 @@ All work on a comsect1 project follows the four-stage workflow below.
 # Spec + Code architecture gate (recommended)
 python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1 -ReportPath .aiad-gate-report.json
 
-# Spec-only gate (if code root is not available)
+# Spec + tooling gate (if code root is not available)
 python scripts/Verify-AIADGate.py -SkipCode -ReportPath .aiad-gate-report.json
 ```
 

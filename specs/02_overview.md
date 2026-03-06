@@ -1,4 +1,4 @@
-﻿# 2. Overview
+# 2. Overview
 
 > **Terminology:** This section is the normative SSOT entry point.
 > For principle background, see **Section 1.6**.
@@ -101,6 +101,7 @@ The sections that follow define:
 | 12. Version History | Change log and superseded ideas |
 | 13. Middleware Guideline | Middleware integration and fractal pattern |
 | Appendix A | Exception handling template |
+| Appendix B | OOP adaptation (A2) |
 
 **This specification is the contract.** Read it to understand what rules are normative.
 
@@ -259,10 +260,10 @@ You are free to:
 - **Share** - copy and redistribute the material in any medium or format for non-commercial purposes only.
 
 Under the following terms:
-- **Attribution** - you must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
-- **NonCommercial** - you may not use the material for commercial purposes.
-- **NoDerivatives** - if you remix, transform, or build upon the material, you may not distribute the modified material.
+- **Attribution** - You must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
+- **NonCommercial** - You may not use the material for commercial purposes.
+- **NoDerivatives** - If you remix, transform, or build upon the material, you may not distribute the modified material.
 
-No additional restrictions - you may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 *Copyright 2025 Kim Hyeongjeong. All rights reserved under the terms above.*

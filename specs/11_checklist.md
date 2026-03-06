@@ -110,16 +110,30 @@ Platform -> Feature reverse includes
 - [ ] Capability components do not include feature `ida_`/`prx_`/`poi_`.
 - [ ] No `inf_` file-role prefix exists.
 - [ ] Infra-integrated layout keeps dependency rules unchanged (no semantic relaxation by folder grouping).
+- [ ] Each `svc_` file has a header comment stating computation purpose and consumer features.
+- [ ] If a feature consuming a `svc_` was modified or removed, `svc_` consolidation/removal reviewed.
 
 ---
 
-## 11.10 Conformance Verification (Gate Execution)
+## 11.10 Migration Cleanup Verification
+
+- [ ] Canonical folder skeleton (Section 7.5) is fully present
+- [ ] No legacy layout folders remain (`/modules/`, `/platform/` at project root, etc.)
+- [ ] No files exist outside canonical locations within `/comsect1`
+- [ ] Files not belonging to comsect1 scope are moved outside `/comsect1` boundary
+- [ ] No orphaned/unused headers or sources remain from pre-migration
+- [ ] Build system references (include paths, source lists) match final folder structure
+
+---
+
+## 11.11 Conformance Verification (Gate Execution)
 
 ### Gate Scripts
 
 | Script | Scope | Purpose |
 |--------|-------|---------|
 | `scripts/Verify-Spec.py` | Specification files (`specs/*.md`) | Structural hygiene, cross-references, SSOT term consistency |
+| `scripts/Verify-ToolingConsistency.py` | Generated AI tooling surfaces + generated blocks in `tooling/INSTALL.md` | Detect drift between generated adapters/skills/wrappers/common packaging blocks and the Python tooling SSOT |
 | `scripts/Verify-Comsect1Code.py` | C/embedded source files | 3-layer dependency, placement, naming rules + Red Flag heuristics |
 | `scripts/Verify-OOPCode.py` | OOP source files (`.cs`/`.vb`) | A2 adaptation rules, immutability, interface boundaries + Red Flag heuristics |
 | `scripts/Verify-AIADGate.py` | Unified runner | Runs all applicable stages + Stage 0 meta-evaluation advisory |
@@ -129,6 +143,7 @@ Platform -> Feature reverse includes
 | Rule family | Enforced |
 |-------------|----------|
 | Layer/dependency direction (`ida_`/`prx_`/`poi_`, reverse include bans) | Yes |
+| Root folder convention (`/comsect1` boundary) | Yes |
 | Invalid role prefix (`inf_`) | Yes |
 | Infra/deps required-root checks (`layout.required`) | Yes |
 | Placement/path checks (`path.*`) including `cfg_`/`db_`/`stm_` | Yes |
@@ -136,9 +151,10 @@ Platform -> Feature reverse includes
 | Module resource purity (`module.resource`) | Yes |
 | Resource include direction (`resource.include`) | Yes |
 | Legacy layout detection (`layout.legacy`) | Yes (error) |
-| Red Flag: Empty Idea / Fat Poiesis (§11.8) | Yes (advisory) |
+| Layer Balance Invariant: Empty Idea / Fat Poiesis (v1.0.1) | Yes (error) |
+| Red Flag heuristics: Fat Praxis (§11.8) | Yes (advisory) |
 
-All structural rules produce errors. Red Flag heuristics produce advisory warnings.
+All structural rules and Layer Balance violations produce errors. Red Flag heuristics produce advisory warnings.
 
 ### OOP Rules (Verify-OOPCode.py)
 
@@ -147,7 +163,8 @@ For OOP projects, `Verify-OOPCode.py` additionally enforces:
 - Idea immutability and referential transparency (Appendix A2)
 - Interface-Owned Layer Boundaries
 - Praxis justification checks
-- Red Flag heuristics (§11.8)
+- Layer Balance Invariant: Empty Idea / Fat Poiesis (v1.0.1, error)
+- Red Flag heuristics: Fat Praxis (§11.8, advisory)
 
 See `specs/A2_oop_adaptation.md` for full OOP adaptation rules.
 
@@ -159,6 +176,8 @@ See `specs/A2_oop_adaptation.md` for full OOP adaptation rules.
 - For multi-project gate configuration, see `guides/03_Verification/V_03_Multi_Project_Gate.md`.
 - For upstream alignment after spec changes, see `guides/04_Meta_Evaluation/ME_01_Upstream_Alignment.md`.
 - For application feedback and ADR process, see `guides/02_Execution_Guides/EG_05_Application_Feedback.md`.
+
+---
 
 ## License
 

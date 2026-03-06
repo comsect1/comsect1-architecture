@@ -24,11 +24,12 @@ The unified runner `Verify-AIADGate.py` auto-detects the project type and activa
 ### 2.1 Spec-Only Project (e.g., comsect1-architecture repo)
 
 ```bash
-# Spec verification only (code/OOP stages auto-skip)
+# Spec + tooling verification only (code/OOP stages auto-skip)
 python scripts/Verify-AIADGate.py
 ```
 
-No `-CodeRoot` or `-OOPRoot` needed. The gate detects no `codes/comsect1` directory and skips code stages.
+No `-CodeRoot` or `-OOPRoot` needed. The gate runs the spec and tooling
+consistency stages, then skips code/OOP stages when no code root is present.
 
 ### 2.2 C/Embedded Project
 
@@ -43,11 +44,8 @@ python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1 -SkipSpec
 ### 2.3 OOP Project
 
 ```bash
-# OOP root auto-detected from CodeRoot
-python scripts/Verify-AIADGate.py -CodeRoot src/
-
-# Or specify OOP root explicitly
-python scripts/Verify-AIADGate.py -OOPRoot src/ -SkipCode
+# OOP root specified explicitly
+python scripts/Verify-AIADGate.py -OOPRoot src/comsect1 -SkipCode
 ```
 
 ### 2.4 Mixed Project
@@ -69,8 +67,14 @@ python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1/embedded -OOPRoot cod
 | `-OOPRoot <path>` | Root directory for OOP code verification (falls back to CodeRoot) |
 | `-ReportPath <path>` | JSON report output path (default: `.aiad-gate-report.json`) |
 | `-SkipSpec` | Skip specification verification stage |
+| `-SkipTooling` | Skip AI tooling consistency stage |
 | `-SkipCode` | Skip C/embedded code architecture stage |
 | `-SkipOOP` | Skip OOP architecture verification stage |
+
+`-CodeRoot` and `-OOPRoot` must point to the dedicated `/comsect1` boundary
+itself (for example `codes/comsect1`, `src/comsect1`) or to a nested
+architecture sub-root beneath it (for example `codes/comsect1/embedded`).
+Pointing the gate at the parent project or library root is a layout violation.
 
 ---
 
@@ -110,7 +114,7 @@ python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1
 
 ## comsect1 Architecture
 
-This project follows the comsect1 architecture specification with OOP adaptation (Appendix A2).
+This project follows the comsect1 architecture specification with OOP adaptation (Appendix B).
 
 - Spec reference: [comsect1-architecture repo path or URL]
 - Architecture variant: OOP (C#)
@@ -120,8 +124,8 @@ This project follows the comsect1 architecture specification with OOP adaptation
 ## Gate Commands
 
 \```bash
-python scripts/Verify-OOPCode.py -Root src/
-python scripts/Verify-AIADGate.py -OOPRoot src/ -SkipCode
+python scripts/Verify-OOPCode.py -Root src/comsect1
+python scripts/Verify-AIADGate.py -OOPRoot src/comsect1 -SkipCode
 \```
 
 ## Project-Specific Rules
@@ -168,7 +172,6 @@ Session context
     |
     +--> /comsect1-analyze Skill → architectural analysis
     +--> comsect1-reviewer Agent → compliance review
-    +--> PostToolUse Hook → gate reminder after edits
 ```
 
 ### Precedence
@@ -182,7 +185,7 @@ Session context
 - Gate scripts live in the spec repo (`comsect1-architecture/scripts/`), not in each project.
 - Projects reference gate scripts by path: `python <spec-repo>/scripts/Verify-AIADGate.py -CodeRoot <project-root>`
 - If a project copies gate scripts locally, it must keep them in sync with the spec repo version.
-- The PostToolUse hook fires based on file patterns in the current working directory — it adapts per project.
+- Gate enforcement is configured via CLAUDE.md Golden Rule and Global Rules — no hook required.
 
 ---
 
@@ -195,7 +198,6 @@ Session context
    python <spec-repo>/scripts/Verify-AIADGate.py -CodeRoot <your-code-root>
    ```
 4. If the gate finds violations, resolve them before starting new work.
-5. Configure the PostToolUse hook (if not already global) to remind about gate runs after code edits.
 
 ---
 
@@ -208,7 +210,7 @@ For projects with continuous integration:
 - name: comsect1 Architecture Gate
   run: |
     python scripts/Verify-AIADGate.py \
-      -CodeRoot src/ \
+      -CodeRoot codes/comsect1 \
       -ReportPath .aiad-gate-report.json
   env:
     PYTHONIOENCODING: utf-8
@@ -225,5 +227,15 @@ The JSON report at `-ReportPath` can be archived as a build artifact for traceab
 This document is part of the **comsect1 Architecture Specification v1.0.0**.
 
 **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)**
+
+You are free to:
+- **Share** - copy and redistribute the material in any medium or format for non-commercial purposes only.
+
+Under the following terms:
+- **Attribution** - You must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
+- **NonCommercial** - You may not use the material for commercial purposes.
+- **NoDerivatives** - If you remix, transform, or build upon the material, you may not distribute the modified material.
+
+No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 *Copyright 2025 Kim Hyeongjeong. All rights reserved under the terms above.*

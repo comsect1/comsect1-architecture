@@ -1,4 +1,4 @@
-﻿# 10. Anti-patterns
+# 10. Anti-patterns
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 

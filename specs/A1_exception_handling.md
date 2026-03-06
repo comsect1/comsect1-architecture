@@ -1,4 +1,4 @@
-﻿# Appendix A. Exception Handling Decision Flow Template
+# Appendix A. Exception Handling Decision Flow Template
 
 > **Terminology:** This appendix is a reference for Section 6.4.
 

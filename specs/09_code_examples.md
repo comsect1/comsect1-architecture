@@ -1,4 +1,4 @@
-﻿# 9. Code Examples
+# 9. Code Examples
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > Examples are illustrative and non-normative.

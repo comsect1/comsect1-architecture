@@ -1,4 +1,4 @@
-﻿# 4. Role of Each Layer
+# 4. Role of Each Layer
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Domain:** Project, Infra Capability, Dependency Repository
@@ -241,6 +241,12 @@ Rules:
 - no upper-layer include
 - no feature coupling
 - keep deterministic and side-effect-minimal where possible
+
+Documentation:
+- each `svc_` file MUST contain a header comment documenting: (a) the computation purpose, and (b) which features consume it
+
+Lifecycle:
+- when a feature that consumes a `svc_` is modified or removed, the `svc_` MUST be reviewed for consolidation or removal within the same work session
 
 ### 4.2.4 DATASTREAM (`stm_`, Data Plane)
 

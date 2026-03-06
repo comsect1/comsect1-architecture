@@ -1,4 +1,4 @@
-﻿# comsect1 Testing Strategy: Fractal Approach
+# comsect1 Testing Strategy: Fractal Approach
 
 ## 1. Core Insight
 

@@ -9,34 +9,29 @@ import json
 import os
 import re
 import sys
+from functools import partial
 from pathlib import Path
+
+from comsect1_gate_helpers import (
+    add_finding,
+    collect_source_files,
+    count_code_lines as _count_code_lines,
+    validate_comsect1_root_boundary,
+    verify_folder_structure,
+    verify_layer_balance,
+    verify_red_flags_common,
+)
 
 SOURCE_EXTENSIONS = {".c", ".h", ".cpp", ".hpp"}
 INCLUDE_REGEX = re.compile(r'^\s*#\s*include\s*[<"](?P<path>[^">]+)[">]')
 SYSTEM_INCLUDE_REGEX = re.compile(r"^\s*#\s*include\s*<")
 
+# C-specific code line counter: skip preprocessor directives
+count_code_lines = partial(_count_code_lines, line_comment_prefixes=("//",), skip_preprocessor=True)
+
 
 def full_path(path_like: str | Path) -> str:
     return os.path.abspath(os.fspath(path_like))
-
-
-def add_finding(
-    findings: list[dict[str, object]],
-    severity: str,
-    file_path: str,
-    line: int,
-    rule: str,
-    message: str,
-) -> None:
-    findings.append(
-        {
-            "Severity": severity,
-            "File": file_path,
-            "Line": line,
-            "Rule": rule,
-            "Message": message,
-        }
-    )
 
 
 def get_role_info(file_name: str) -> tuple[str, str | None]:
@@ -138,90 +133,8 @@ def test_is_same_feature_include(
     return test_is_same_feature_header(leaf=leaf, prefix=prefix, feature=feature)
 
 
-MIN_IDA_LINES = 10
-DOMAIN_CONDITIONAL_RE = re.compile(
-    r"\b(?:if|switch|case)\b.*\b(?:mode|state|status|level|type|flag|enable|disable|active|threshold)\b",
-    re.IGNORECASE,
-)
-
-COMMENT_LINE_RE = re.compile(r"^\s*(?://|/\*|\*|\*/)")
-BLANK_LINE_RE = re.compile(r"^\s*$")
 
 
-def count_code_lines(path: Path) -> int:
-    """Count non-blank, non-comment lines in a C source file."""
-    count = 0
-    in_block_comment = False
-    try:
-        with path.open("r", encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                stripped = line.strip()
-                if in_block_comment:
-                    if "*/" in stripped:
-                        in_block_comment = False
-                    continue
-                if stripped.startswith("/*") and "*/" not in stripped[2:]:
-                    in_block_comment = True
-                    continue
-                if BLANK_LINE_RE.match(stripped) or COMMENT_LINE_RE.match(stripped):
-                    continue
-                if stripped.startswith("#"):  # preprocessor directives don't count as logic
-                    continue
-                count += 1
-    except OSError:
-        pass
-    return count
-
-
-def verify_red_flags(
-    source_files: list[Path],
-    findings: list[dict[str, object]],
-) -> None:
-    """Advisory-level Red Flag heuristic checks (§11.8)."""
-    for file in source_files:
-        if file.suffix.lower() != ".c":
-            continue
-        role, _ = get_role_info(file.name)
-
-        # Red Flag: Empty Idea
-        if role == "idea":
-            code_lines = count_code_lines(file)
-            if code_lines < MIN_IDA_LINES:
-                add_finding(
-                    findings,
-                    "warning",
-                    str(file),
-                    0,
-                    "red-flag-empty-idea",
-                    f"ida_ source has only {code_lines} code lines (threshold: {MIN_IDA_LINES}). "
-                    "Verify that domain judgment is present, not just pass-through calls.",
-                )
-
-        # Red Flag: Fat Poiesis
-        if role == "poiesis":
-            try:
-                text = file.read_text(encoding="utf-8", errors="replace")
-                domain_hits = DOMAIN_CONDITIONAL_RE.findall(text)
-                if domain_hits:
-                    add_finding(
-                        findings,
-                        "warning",
-                        str(file),
-                        0,
-                        "red-flag-fat-poiesis",
-                        f"poi_ source contains {len(domain_hits)} domain-meaningful conditional(s). "
-                        "Consider moving domain logic to ida_ or prx_.",
-                    )
-            except OSError:
-                pass
-
-
-def collect_source_files(root: Path) -> list[Path]:
-    files: list[Path] = []
-    for p in root.rglob("*"):
-        if p.is_file() and p.suffix.lower() in SOURCE_EXTENSIONS:
-            files.append(p)
-    return files
 
 
 def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
@@ -231,7 +144,7 @@ def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify comsect1 code architecture rules.")
-    parser.add_argument("-Root", dest="root", required=True)
+    parser.add_argument("-Root", dest="root", required=True, help="Dedicated comsect1 root directory to scan")
     parser.add_argument("-JsonOut", dest="json_out", default=None)
     args = parser.parse_args()
 
@@ -243,6 +156,10 @@ def main() -> int:
 
     def err(file_path: str, line: int, rule: str, message: str) -> None:
         add_finding(findings, "error", file_path, line, rule, message)
+
+    root_boundary_issue = validate_comsect1_root_boundary(root_path)
+    if root_boundary_issue:
+        err(str(root_path), 1, "layout.root_boundary", root_boundary_issue)
 
     infra_bootstrap_dir = root_path / "infra" / "bootstrap"
     infra_service_dir = root_path / "infra" / "service"
@@ -291,7 +208,10 @@ def main() -> int:
     if legacy_platform_dir.is_dir():
         err(str(root_path), 1, "layout.legacy", f"Legacy platform folder detected. Migrate to /infra/platform/: {legacy_platform_dir}")
 
-    source_files = collect_source_files(root_path)
+    # --- Comprehensive folder tree checks (Section 7.3, 7.5, 7.10) ---
+    verify_folder_structure(root_path, findings)
+
+    source_files = collect_source_files(root_path, SOURCE_EXTENSIONS)
     if not source_files:
         err(str(root_path), 1, "layout.required", f"No source files found under: {root_path}")
 
@@ -543,20 +463,42 @@ def main() -> int:
                 if is_forbidden_platform_include:
                     err(str(file), line_no, "platform.include", f"Platform must not include upper-layer/resource/module headers: {include_path}")
 
-    # Stage: Red Flag heuristics (advisory only)
-    verify_red_flags(source_files, findings)
+    # Pre-group .c files by architectural role for shared helpers
+    c_files = [f for f in source_files if f.suffix.lower() == ".c"]
+    ida_files = [f for f in c_files if get_role_info(f.name)[0] == "idea"]
+    prx_files = [f for f in c_files if get_role_info(f.name)[0] == "praxis"]
+    poi_files = [f for f in c_files if get_role_info(f.name)[0] == "poiesis"]
 
-    errors = [f for f in findings if f["Severity"] == "error"]
-    warnings = [f for f in findings if f["Severity"] == "warning"]
+    # Stage: Layer Balance Invariant (v1.0.1, error severity)
+    verify_layer_balance(
+        ida_files, poi_files, findings,
+        extract_feature=get_feature_from_path, count_lines=count_code_lines,
+    )
+
+    # Stage: Red Flag heuristics (advisory only)
+    verify_red_flags_common(
+        ida_files, prx_files, poi_files, findings,
+        count_lines=count_code_lines,
+    )
+
+    errors = [f for f in findings if f["severity"] == "error"]
+    warnings = [f for f in findings if f["severity"] == "warning"]
 
     print(f"comsect1 code verification complete: {root_path}")
     print(f"Errors: {len(errors)}")
     if warnings:
         print(f"Warnings (advisory): {len(warnings)}")
-    for e in sorted(errors, key=lambda item: (str(item["File"]), int(item["Line"]), str(item["Rule"]))):
-        print(f"- {e['File']}:{e['Line']} [{e['Rule']}] {e['Message']}")
-    for w in sorted(warnings, key=lambda item: (str(item["File"]), int(item["Line"]), str(item["Rule"]))):
-        print(f"  (advisory) {w['File']}:{w['Line']} [{w['Rule']}] {w['Message']}")
+    for e in sorted(errors, key=lambda item: (str(item["file"]), int(item["line"]), str(item["rule"]))):
+        print(f"- {e['file']}:{e['line']} [{e['rule']}] {e['message']}")
+    for w in sorted(warnings, key=lambda item: (str(item["file"]), int(item["line"]), str(item["rule"]))):
+        print(f"  (advisory) {w['file']}:{w['line']} [{w['rule']}] {w['message']}")
+
+    if errors:
+        print(f"\nGate FAILED -- {len(errors)} error(s) must be resolved.")
+    elif warnings:
+        print(f"\nGate passed -- {len(warnings)} advisory warning(s) for review.")
+    else:
+        print("\nGate passed -- no issues found.")
 
     if args.json_out:
         report = {

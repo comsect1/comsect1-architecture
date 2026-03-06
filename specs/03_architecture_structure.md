@@ -1,4 +1,4 @@
-﻿# 3. Architecture Structure
+# 3. Architecture Structure
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Domain**: Project, Infra Capability, Dependency Repository

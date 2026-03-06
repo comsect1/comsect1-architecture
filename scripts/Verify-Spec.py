@@ -8,20 +8,50 @@ import re
 import sys
 from pathlib import Path
 
+from comsect1_gate_helpers import resolve_repo_root
+
 
 def add_issue(issues: list[str], message: str) -> None:
     issues.append(message)
 
 
+def has_utf8_bom(path: Path) -> bool:
+    return path.read_bytes().startswith(b"\xef\xbb\xbf")
+
+
 def get_file_text_utf8(path: Path) -> str:
-    # Use utf-8-sig to match prior PowerShell behavior and ignore optional BOM.
+    # Use utf-8-sig for parsing after BOM checks so content validation remains stable.
     return path.read_text(encoding="utf-8-sig")
 
 
-def resolve_repo_root(script_path: Path, repo_root_arg: str | None) -> Path:
-    if repo_root_arg:
-        return Path(repo_root_arg).resolve()
-    return (script_path.parent / "..").resolve()
+def iter_repo_text_files(repo_root: Path) -> list[Path]:
+    files: set[Path] = set()
+
+    fixed_files = [
+        repo_root / "README.md",
+        repo_root / "AGENTS.md",
+        repo_root / "CLAUDE.md",
+        repo_root / ".editorconfig",
+        repo_root / ".gitattributes",
+    ]
+    for file in fixed_files:
+        if file.is_file():
+            files.add(file)
+
+    glob_patterns = [
+        "specs/**/*.md",
+        "guides/**/*.md",
+        "tooling/**/*.md",
+        "tooling/**/*.ps1",
+        "tooling/**/*.sh",
+        "tooling/**/*.yaml",
+        "tooling/**/*.yml",
+        "scripts/**/*.py",
+    ]
+    for pattern in glob_patterns:
+        files.update(path for path in repo_root.glob(pattern) if path.is_file())
+
+    return sorted(files)
 
 
 def main() -> int:
@@ -43,6 +73,12 @@ def main() -> int:
         raise RuntimeError(f"No spec files found in: {specs_dir}")
 
     issues: list[str] = []
+    repo_text_files = iter_repo_text_files(repo_root)
+
+    for file in repo_text_files:
+        if has_utf8_bom(file):
+            rel_path = file.relative_to(repo_root).as_posix()
+            add_issue(issues, f"UTF-8 BOM is not allowed: {rel_path}")
 
     # Numbered sections: NN_slug.md
     # Appendices: A<index>_slug.md (e.g., A1_exception_handling.md)
@@ -134,7 +170,7 @@ def main() -> int:
             if inf_file_usage_re.search(line):
                 add_issue(
                     issues,
-                    f"SSOT term: specs/{spec_file.name}:{line_no} — "
+                    f"SSOT term: specs/{spec_file.name}:{line_no} -- "
                     f"inf_ file-role prefix used in example (§2.7.8: inf_ is forbidden)",
                 )
 
@@ -200,6 +236,11 @@ def main() -> int:
     print(f"Issues: {len(issues)}")
     for message in issues:
         print(f"- {message}")
+
+    if issues:
+        print(f"\nGate FAILED -- {len(issues)} issue(s) must be resolved.")
+    else:
+        print("\nGate passed -- no issues found.")
 
     return 2 if issues else 0
 

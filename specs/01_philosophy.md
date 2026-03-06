@@ -1,4 +1,4 @@
-﻿# 1. comsect1 Philosophy
+# 1. comsect1 Philosophy
 
 > **Terminology:** This section defines core principles. For normative terminology and dependency SSOT, see **Section 2.7**.
 
@@ -235,11 +235,11 @@ Alignment points:
 - **Flow vs dependency inversion**:
   - business meaning flows downward through execution while dependency direction remains upward toward intent purity.
 - **Gaze**:
-  - the diagnostic act of tracing dependencies upward to understand structural alignment. In comsect1, this manifests as comprehension through dependency direction — following `ida_` → `prx_` → `poi_` → infrastructure to verify intent propagation (§1.1.2).
+  - the diagnostic act of tracing dependencies upward to understand structural alignment. In comsect1, this manifests as comprehension through dependency direction — following `ida_` → `prx_` → `poi_` → infrastructure to verify intent propagation (Section 1.1.2).
 - **Grain**:
-  - structure's purpose physically expressed as texture. In comsect1, Grain appears as the folder layout (§7), naming conventions (§8), and role prefixes — the visible, tactile surface of architectural intent.
+  - structure's purpose physically expressed as texture. In comsect1, Grain appears as the folder layout (Section 7), naming conventions (Section 8), and role prefixes — the visible, tactile surface of architectural intent.
 - **Perturbation**:
-  - evolutionary pressure that causes layers to differentiate. The 3-layer model (Idea/Praxis/Poiesis) is not an arbitrary division; it is the fossil record of perturbation — external coupling forces that demanded structural separation. The PRX/POI split (§12) is a concrete example: audit-discovered heterogeneity forced explicit role differentiation.
+  - evolutionary pressure that causes layers to differentiate. The 3-layer model (Idea/Praxis/Poiesis) is not an arbitrary division; it is the fossil record of perturbation — external coupling forces that demanded structural separation. The PRX/POI split (Section 12) is a concrete example: audit-discovered heterogeneity forced explicit role differentiation.
 - **Great Alignment**:
   - architecture quality is judged by continuity of alignment, not by static completion.
 
@@ -278,10 +278,10 @@ You are free to:
 - **Share** - copy and redistribute the material in any medium or format for non-commercial purposes only.
 
 Under the following terms:
-- **Attribution** - you must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
-- **NonCommercial** - you may not use the material for commercial purposes.
-- **NoDerivatives** - if you remix, transform, or build upon the material, you may not distribute the modified material.
+- **Attribution** - You must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
+- **NonCommercial** - You may not use the material for commercial purposes.
+- **NoDerivatives** - If you remix, transform, or build upon the material, you may not distribute the modified material.
 
-No additional restrictions - you may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 *Copyright 2025 Kim Hyeongjeong. All rights reserved under the terms above.*

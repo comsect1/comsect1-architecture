@@ -1,4 +1,4 @@
-﻿# comsect1 Build System Guidelines
+# comsect1 Build System Guidelines
 
 ## 1. Philosophy: Build Follows Architecture
 

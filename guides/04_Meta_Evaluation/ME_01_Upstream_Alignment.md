@@ -101,4 +101,14 @@ This document is part of the **comsect1 Architecture Specification v1.0.0**.
 
 **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)**
 
+You are free to:
+- **Share** - copy and redistribute the material in any medium or format for non-commercial purposes only.
+
+Under the following terms:
+- **Attribution** - You must give appropriate credit to the author (Kim Hyeongjeong), provide a reference to the license, and indicate if changes were made.
+- **NonCommercial** - You may not use the material for commercial purposes.
+- **NoDerivatives** - If you remix, transform, or build upon the material, you may not distribute the modified material.
+
+No additional restrictions - You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
 *Copyright 2025 Kim Hyeongjeong. All rights reserved under the terms above.*

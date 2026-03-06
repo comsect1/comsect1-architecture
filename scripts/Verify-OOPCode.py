@@ -9,7 +9,7 @@ Equivalent to Verify-Comsect1Code.py for C/C++ projects.
 See: specs/A2_oop_adaptation.md (Appendix B)
 
 Usage:
-    python Verify-OOPCode.py -Root <project_root> [-Extensions .vb,.cs] [-ReportPath <path>]
+    python Verify-OOPCode.py -Root <comsect1_root> [-Extensions .vb,.cs] [-ReportPath <path>]
 
 Exit codes:
     0 - Gate passed (no violations)
@@ -21,12 +21,26 @@ import json
 import re
 import sys
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
+
+from comsect1_gate_helpers import (
+    add_finding,
+    collect_source_files,
+    count_code_lines as _count_code_lines,
+    validate_comsect1_root_boundary,
+    verify_folder_structure,
+    verify_layer_balance,
+    verify_red_flags_common,
+)
 
 # ---------------------------------------------------------------------------
 # Source file extensions to inspect
 # ---------------------------------------------------------------------------
 DEFAULT_EXTENSIONS = {".vb", ".cs"}
+
+# OOP-specific code line counter: handle VB.NET single-quote comments
+count_code_lines = partial(_count_code_lines, line_comment_prefixes=("//", "'"))
 
 # ---------------------------------------------------------------------------
 # Role detection: filename prefix -> architectural role
@@ -93,22 +107,6 @@ def get_prefix(filename: str) -> str | None:
     return None
 
 
-def collect_source_files(root: Path, extensions: set[str]) -> list[Path]:
-    files = []
-    for ext in extensions:
-        files.extend(root.rglob(f"*{ext}"))
-    return sorted(set(files))
-
-
-def add_finding(findings: list, severity: str, file_path: Path, line_no: int,
-                rule: str, message: str) -> None:
-    findings.append({
-        "severity": severity,
-        "file": str(file_path),
-        "line": line_no,
-        "rule": rule,
-        "message": message,
-    })
 
 
 def extract_class_name(file_path: Path) -> str:
@@ -121,7 +119,9 @@ def extract_class_name(file_path: Path) -> str:
 def extract_feature_name(file_path: Path) -> str | None:
     """Extract the feature name for cross-feature reference checking.
 
-    Two modes (folder-based takes priority):
+    Three modes (bootstrap exemption first, then folder-based, then filename):
+    0. Bootstrap exemption: files in /infra/bootstrap/ are core scope (§4.0),
+       not features. Core files legitimately reference multiple features.
     1. Folder-based: if file is in .../features/<feature_name>/..., use folder name.
        Supports feature-scoped layouts where multiple layer files share a folder.
     2. Filename-based: extract from prefix (e.g. ida_Motor -> Motor).
@@ -129,6 +129,12 @@ def extract_feature_name(file_path: Path) -> str | None:
 
     Returns None if no recognized prefix or if it's a shared resource.
     """
+    # Mode 0: Bootstrap core files are not features (§4.0 core scope)
+    # ida_core and poi_core legitimately reference feature layer files.
+    parts_lower = [p.lower() for p in file_path.parts]
+    if "bootstrap" in parts_lower:
+        return None
+
     # Mode 1: Folder-based feature identification (A2.5.7 feature-centric co-location)
     parts = file_path.parts
     for i, part in enumerate(parts):
@@ -270,7 +276,7 @@ def verify_cross_feature_references(file_path: Path, role: str, all_layer_files:
     this check per A2.5.2 (Shared Domain Utilities). They belong to the capability
     plane or data plane, not to any specific feature.
     """
-    # Skip shared resource files — they are not features
+    # Skip shared resource files -- they are not features
     if is_shared_resource(file_path):
         return
 
@@ -281,7 +287,7 @@ def verify_cross_feature_references(file_path: Path, role: str, all_layer_files:
     # Collect layer class names from OTHER features (excluding shared resources)
     cross_feature_names: list[tuple[str, str]] = []  # (class_name, feature_name)
     for other_file in all_layer_files:
-        # Skip shared resources — they are accessible from any layer per dependency rules
+        # Skip shared resources -- they are accessible from any layer per dependency rules
         if is_shared_resource(other_file):
             continue
         other_feature = extract_feature_name(other_file)
@@ -325,55 +331,45 @@ def verify_cross_feature_references(file_path: Path, role: str, all_layer_files:
 # Stage 4: Red Flag heuristics (advisory, per §11.8)
 # ---------------------------------------------------------------------------
 
-# Minimum non-comment lines expected in an ida_ file.
-# Fewer suggests an "Empty Idea" pass-through.
-MIN_IDA_LINES = 10
 
-# Patterns that indicate domain-meaningful conditionals in poi_ files.
-# Their presence suggests business logic that belongs in ida_ or prx_.
-DOMAIN_CONDITIONAL_RE = re.compile(
-    r"\b(?:if|switch|case)\b.*\b(?:mode|state|status|level|type|flag|enable|disable|active|threshold)\b",
+# ---------------------------------------------------------------------------
+# A2.8.2 Warning heuristics: ida_ self-containment (feature resource + mutable state)
+# ---------------------------------------------------------------------------
+
+# Feature resource reference inside ida_ files (A2.6.4).
+# Matches cfg_<anything except core/Core>, db_<anything>, stm_<anything>.
+# cfg_core / cfg_Core are allowed (A2.2.2: "Reference to core contract types").
+FEATURE_RESOURCE_RE = re.compile(
+    r"\b(?:cfg_(?!core\b|Core\b)|db_|stm_)\w+",
+)
+
+# Mutable instance field declaration in C# ida_ files (A2.6.5).
+# Matches access modifier lines WITHOUT readonly/const/static qualifiers.
+# Excludes static fields -- static utility class form is valid (A2.2.2 form a).
+CS_MUTABLE_FIELD_RE = re.compile(
+    r"^\s*(?:private|public|protected|internal)(?:\s+(?!static\b|readonly\b|const\b)\w+)*\s+\w[\w<>\[\]?,\s]*\s+\w+\s*[;={]",
+    re.IGNORECASE,
+)
+
+# Mutable instance field declaration in VB.NET ida_ files (A2.6.5).
+# Matches Dim declarations WITHOUT ReadOnly/Const/Shared qualifiers.
+VB_MUTABLE_FIELD_RE = re.compile(
+    r"^\s*(?:Private|Public|Protected|Friend)(?:\s+(?!Shared\b|ReadOnly\b|Const\b)\w+)*\s+Dim\s+\w+",
     re.IGNORECASE,
 )
 
 
-def count_code_lines(file_path: Path) -> int:
-    """Count non-blank, non-comment lines in a source file."""
-    try:
-        lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return 0
-
-    count = 0
-    in_block_comment = False
-    for line in lines:
-        stripped = line.strip()
-        if in_block_comment:
-            if "*/" in stripped:
-                in_block_comment = False
-            continue
-        if stripped.startswith("/*"):
-            in_block_comment = True
-            continue
-        if not stripped or stripped.startswith("'") or stripped.startswith("//"):
-            continue
-        count += 1
-    return count
 
 
-def verify_red_flags(ida_files: list[Path], prx_files: list[Path],
-                     poi_files: list[Path], findings: list) -> None:
-    """Check for §11.8 Red Flag patterns (advisory severity only)."""
-    # Red Flag: Empty Idea
+def verify_red_flags_oop(ida_files: list[Path], findings: list) -> None:
+    """OOP-specific Red Flag checks (A2.8.2): feature resource access and mutable fields.
+
+    The three universal checks (Empty Idea, Fat Poiesis, Fat Praxis) are
+    handled by verify_red_flags_common() from comsect1_gate_helpers.
+    """
+    # Red Flag: ida_ accessing feature resources (A2.8.2, A2.6.4)
+    # cfg_core/cfg_Core are allowed (A2.2.2). Other cfg_/db_/stm_ in ida_ = advisory.
     for f in ida_files:
-        code_lines = count_code_lines(f)
-        if code_lines < MIN_IDA_LINES:
-            add_finding(findings, "warning", f, 0, "red-flag-empty-idea",
-                        f"Possible Empty Idea: only {code_lines} code line(s) "
-                        f"(threshold: {MIN_IDA_LINES}). Verify that domain logic is not in prx_/poi_.")
-
-    # Red Flag: Fat Poiesis (domain conditionals in poi_)
-    for f in poi_files:
         try:
             lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
@@ -382,10 +378,30 @@ def verify_red_flags(ida_files: list[Path], prx_files: list[Path],
             stripped = line.strip()
             if stripped.startswith("'") or stripped.startswith("//"):
                 continue
-            if DOMAIN_CONDITIONAL_RE.search(line):
-                add_finding(findings, "warning", f, line_no, "red-flag-fat-poiesis",
-                            "Possible Fat Poiesis: domain-meaningful conditional in poi_ file. "
-                            "Consider moving business logic to ida_ or prx_.")
+            if FEATURE_RESOURCE_RE.search(line):
+                add_finding(findings, "warning", f, line_no, "red-flag-ida-feature-resource",
+                            "Possible self-containment violation: ida_ references a feature resource "
+                            "(cfg_<feature>, db_, or stm_). Only cfg_core is allowed in ida_. "
+                            "Move resource access to prx_ or poi_.")
+                break  # One warning per file is sufficient
+
+    # Red Flag: ida_ mutable instance fields (A2.8.2, A2.6.5)
+    # Static fields are excluded -- static utility class form (A2.2.2 form a) is valid.
+    for f in ida_files:
+        ext = f.suffix.lower()
+        mutable_re = CS_MUTABLE_FIELD_RE if ext == ".cs" else VB_MUTABLE_FIELD_RE
+        try:
+            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line_no, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if stripped.startswith("'") or stripped.startswith("//"):
+                continue
+            if mutable_re.search(line):
+                add_finding(findings, "warning", f, line_no, "red-flag-ida-mutable-field",
+                            "Possible purity violation: ida_ may declare a mutable instance field. "
+                            "Idea must be immutable (A2.5.1). Use static methods or readonly/const fields.")
                 break  # One warning per file is sufficient
 
 
@@ -395,6 +411,12 @@ def verify_red_flags(ida_files: list[Path], prx_files: list[Path],
 
 def run(root: Path, extensions: set[str], report_path: Path | None) -> int:
     findings: list[dict] = []
+
+    root_boundary_issue = validate_comsect1_root_boundary(root)
+    if root_boundary_issue:
+        add_finding(findings, "error", root, 1, "layout.root_boundary", root_boundary_issue)
+
+    verify_folder_structure(root, findings)
 
     files = collect_source_files(root, extensions)
     role_map = build_class_map(files)
@@ -409,6 +431,21 @@ def run(root: Path, extensions: set[str], report_path: Path | None) -> int:
     total_checked = len(ida_files) + len(prx_files) + len(poi_files)
 
     if total_checked == 0:
+        if findings:
+            errors = [f for f in findings if f["severity"] == "error"]
+            print(f"\n{'='*60}")
+            print(f"  comsect1 OOP Gate - FAILED  ({len(errors)} error(s), 0 warning(s))")
+            print(f"{'='*60}")
+            for f in findings:
+                sev = "FAIL" if f["severity"] == "error" else "WARN"
+                try:
+                    rel = Path(f["file"]).relative_to(root)
+                except ValueError:
+                    rel = Path(f["file"]).name
+                print(f"  [{sev}] {rel}:{f['line']}  [{f['rule']}]  {f['message']}")
+            print()
+            print(f"Gate FAILED -- {len(errors)} error(s) must be resolved.")
+            return 2
         print(f"[INFO] No ida_/prx_/poi_ files found under {root}")
         return 0
 
@@ -428,8 +465,18 @@ def run(root: Path, extensions: set[str], report_path: Path | None) -> int:
         if role:
             verify_cross_feature_references(f, role, all_layer_files, findings)
 
-    # Stage 4: Red Flag heuristics (advisory)
-    verify_red_flags(ida_files, prx_files, poi_files, findings)
+    # Stage 4: Layer Balance Invariant (v1.0.1, error severity)
+    verify_layer_balance(
+        ida_files, poi_files, findings,
+        extract_feature=extract_feature_name, count_lines=count_code_lines,
+    )
+
+    # Stage 5: Red Flag heuristics (advisory)
+    verify_red_flags_common(
+        ida_files, prx_files, poi_files, findings,
+        count_lines=count_code_lines,
+    )
+    verify_red_flags_oop(ida_files, findings)
 
     # Sort for deterministic output
     findings.sort(key=lambda x: (x["file"], x["line"], x["rule"]))
@@ -463,6 +510,14 @@ def run(root: Path, extensions: set[str], report_path: Path | None) -> int:
     else:
         print(f"\n  comsect1 OOP Gate - PASSED  ({total_checked} file(s) verified, 0 violations)\n")
 
+    warnings = [f for f in findings if f["severity"] == "warning"]
+    if errors:
+        print(f"Gate FAILED -- {len(errors)} error(s) must be resolved.")
+    elif warnings:
+        print(f"Gate passed -- {len(warnings)} advisory warning(s) for review.")
+    else:
+        print("Gate passed -- no issues found.")
+
     # JSON report
     if report_path:
         report = {
@@ -490,7 +545,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="comsect1 OOP architecture gate (VB.NET / C#)"
     )
-    parser.add_argument("-Root", required=True, help="Project root directory to scan")
+    parser.add_argument("-Root", required=True, help="Dedicated comsect1 root directory to scan")
     parser.add_argument("-Extensions", default=".vb,.cs",
                         help="Comma-separated file extensions (default: .vb,.cs)")
     parser.add_argument("-ReportPath", default=None, help="Path for JSON report output")

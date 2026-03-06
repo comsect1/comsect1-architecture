@@ -1,4 +1,4 @@
-﻿# comsect1 Legacy Code Refactoring Guide
+# comsect1 Legacy Code Refactoring Guide
 
 > **Note:** The verification script no longer provides `Core` or `Legacy`
 > conformance profiles. All rules are enforced as errors.
@@ -54,11 +54,12 @@ Map result:
 
 ### 2.2 Migration Order (Recommended)
 
-1. core execution (`prx_core` -> `poi_core` semantics in docs/code where possible)
-2. platform-adjacent wrappers (`prx_*` wrappers -> `poi_*`)
-3. protocol interpretation files (remain/convert to `prx_*`)
-4. cross-feature dependency cleanup (`stm_` only)
-5. guide/checklist/doc sync
+Migration follows a spatial-first progression: establish physical structure before semantic refactoring.
+
+1. **Scaffold** canonical folder structure (empty skeleton per Section 7.5)
+2. **Place** existing files into canonical folders; split unseparated files into `ida_`/`prx_`/`poi_`
+3. **Verify & refactor** layer roles, balance, and dependency direction
+4. **Clean up** non-conformant remnants (legacy folders, orphaned files, boundary violations)
 
 ### 2.3 Risk Control
 
@@ -72,29 +73,70 @@ Map result:
 
 ### 3.1 Build Safety Net
 
-Before edits:
+Before edits, confirm the legacy project builds:
 
 ```powershell
 cmake -S cmake -B .cmakeBuild -G Ninja -DCMAKE_BUILD_TYPE=Debug
 ninja -C .cmakeBuild
 ```
 
-### 3.2 Mechanical Extraction
+### 3.2 Step 1: Scaffold Canonical Folder Structure
 
-Typical extraction pattern:
+Create the canonical folder skeleton (Section 7.5) before moving any files.
 
-1. move raw HAL/OS wrappers from legacy file to `poi_<feature>.c`
-2. keep external-type interpretation in `prx_<feature>.c`
-3. move decisions to `ida_<feature>.c`
+```text
+/comsect1
+  /project
+    /config
+    /datastreams        (optional)
+    /features
+  /infra
+    /bootstrap
+    /service
+    /platform
+      /hal
+      /bsp
+  /deps
+    /extern
+    /middleware
+```
 
-### 3.3 Include Direction Cleanup
+This step produces empty directories only — no files are moved yet.
 
-Required outcomes:
+Verify: folder tree matches the reference structure in Section 7.5.
+
+### 3.3 Step 2: File Placement and Layer Separation
+
+Move existing files into the canonical folder structure. Two sub-operations:
+
+**(a) Direct placement** — files that already carry correct role prefixes (`ida_`, `prx_`, `poi_`, `cfg_`, `db_`, `stm_`, `hal_`, `bsp_`, `svc_`, `mdw_`) are moved to their canonical location.
+
+**(b) Split and placement** — monolithic or unseparated files are decomposed using the 3-question discriminator (Section 2.3):
+
+1. Extract raw HAL/OS wrappers → `poi_<feature>.c`
+2. Keep external-type interpretation with domain meaning → `prx_<feature>.c`
+3. Move business decisions → `ida_<feature>.c`
+
+Each feature should end with at minimum `ida_` + `poi_`; `prx_` only when the discriminator requires it.
+
+Build after each feature placement to maintain buildability.
+
+### 3.4 Step 3: Layer Role & Balance Check → Refactoring
+
+After physical placement is complete, verify and refactor the content of each layer.
+
+**Layer balance check** (Section 11.8, Layer Balance Invariant):
+- `ida_` must contain domain decisions (conditionals with business meaning).
+  One-line forwarding is an **Empty Idea violation**.
+- `poi_` must not contain domain-semantic conditionals.
+  If `poi_` has `if/switch/case` based on business rules, those belong in `ida_`.
+- `prx_` must not accumulate mechanical-only wrappers (move to `poi_`).
+
+**Dependency direction cleanup** (Section 11.7):
 - `ida_` includes only own `prx_`/`poi_` + `cfg_core.h`
-- `prx_`/`poi_` include no other feature headers
-- feature-to-feature communication only via `stm_`
+- `prx_`/`poi_` do not include other feature headers
 
-### 3.4 Cross-feature Refactor Pattern
+**Cross-feature refactoring:**
 
 Forbidden legacy pattern:
 
@@ -108,11 +150,30 @@ Target pattern:
 #include "stm_sensor_data.h"
 ```
 
-### 3.5 Core Pattern Update
-
+**Core pattern update:**
 - `ida_core` remains policy owner
 - `poi_core` performs scheduler/OS registration execution
 - optional `prx_core` only if external-type interpretation is unavoidable
+
+Build + grep verification after each refactoring unit.
+
+**Service (`svc_`) lifecycle review:**
+
+After layer refactoring, review all `svc_` files affected by the migration:
+- If a feature that consumed a `svc_` was modified or removed, assess whether the `svc_` is still needed, should be consolidated with another, or should be removed.
+- Ensure every `svc_` file has a header comment documenting its purpose and consumer features (Section 4.2.3).
+- If uncertain about consolidation, consult the user before proceeding.
+
+### 3.5 Step 4: Boundary Cleanup
+
+After refactoring is complete, remove non-conformant remnants:
+
+1. **Remove legacy folders** — delete empty legacy layout directories (`/modules/`, `/platform/` at project root, `/core/config/`, etc.)
+2. **Move non-comsect1 files** — files that do not belong in comsect1 scope (e.g., application-level entry points, test harnesses, vendor code not in `/deps`) are moved outside the `/comsect1` boundary
+3. **Remove orphans** — delete unused headers and sources that were superseded during migration
+4. **Update build system** — ensure CMakeLists.txt, include paths, and source lists reflect the final folder structure
+
+Final build verification (debug + release).
 
 ---
 
@@ -166,7 +227,15 @@ rg -n "#include .*features/.*/(ida_|prx_|poi_)" codes/
 rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/features/*/ida_*.c
 ```
 
-### 5.4 Documentation
+### 5.4 Boundary Cleanup
+
+- [ ] no legacy layout folders remain (`/modules/`, `/platform/` at root, etc.)
+- [ ] no files outside canonical locations within `/comsect1`
+- [ ] non-comsect1 files moved outside `/comsect1` boundary
+- [ ] no orphaned/unused headers or sources from pre-migration
+- [ ] build system references match final folder structure
+
+### 5.5 Documentation
 
 - [ ] architecture docs updated to 3-layer terminology
 - [ ] change recorded as architecture update in version history

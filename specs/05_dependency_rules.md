@@ -1,4 +1,4 @@
-﻿# 5. Dependency Rules
+# 5. Dependency Rules
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Architecture Layer**: Idea / Praxis / Poiesis

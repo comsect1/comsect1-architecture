@@ -23,6 +23,10 @@ Before starting development, you must be familiar with the following documents:
 *   **[../../specs/05_dependency_rules.md](../../specs/05_dependency_rules.md)**
     *   **Content:** Defines the interaction rules and dependency direction between layers. This is the rulebook for "which layer can call which other layer."
 
+*   **[../../specs/A2_oop_adaptation.md](../../specs/A2_oop_adaptation.md)** *(OOP projects only)*
+    *   **Content:** OOP adaptation of the 3-layer model. Defines Idea purity as immutability + referential transparency (not statelessness), the optional Praxis justification bar, and Interface-Owned Layer Boundaries.
+    *   **Apply when**: project uses C#, Java, VB.NET, or any OOP language.
+
 ---
 
 **Conclusion: `specs/` is the 'Law', and `guides/` is the 'Practical Manual' for enforcing that law. Always check the law first.**

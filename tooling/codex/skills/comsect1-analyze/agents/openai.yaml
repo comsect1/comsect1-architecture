@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Analyze"
+  short_description: "Analyze codebases for comsect1 architecture"
+  default_prompt: "Use $comsect1-analyze to analyze this codebase for comsect1 layer placement, dependency rules, and gate readiness."

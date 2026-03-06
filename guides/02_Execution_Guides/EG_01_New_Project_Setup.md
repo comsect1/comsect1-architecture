@@ -1,4 +1,4 @@
-﻿# comsect1 New Project Guide
+# comsect1 New Project Guide
 
 Step-by-step guide for creating a new project with the 3-layer model (`ida_`/`prx_`/`poi_`).
 
@@ -165,7 +165,17 @@ Poiesis responsibilities:
 
 No domain decisions in POI.
 
-### 3.5 Step 5: Wire Core
+### 3.5 Step 5: Extract Shared Services (if needed)
+
+If multiple features share the same computation logic, extract it into a `svc_` file under `/infra/service/`.
+
+Rules (Section 4.2.3):
+- each `svc_` file must include a header comment stating its purpose and consumer features
+- `svc_` must remain domain-agnostic (no feature coupling, no upper-layer include)
+
+Only extract when the logic is substantial and reused across two or more features. Do not create `svc_` for single-feature utilities.
+
+### 3.6 Step 6: Wire Core
 
 `ida_core`:
 - select features

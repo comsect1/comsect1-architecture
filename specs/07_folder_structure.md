@@ -1,4 +1,4 @@
-﻿# 7. Folder Structure
+# 7. Folder Structure
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 > - **Layout**: Physical folder conventions (what this section defines)
@@ -183,7 +183,57 @@ This supports low entry barrier and high comprehension.
 
 Legacy folder layouts (`/modules/`, `/platform/`) are not conformant with this specification.
 The verification script enforces normative layout only.
-For migration steps, see `guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`.
+
+### 7.9.1 Migration Invariants
+
+1. The canonical folder skeleton (Section 7.5) MUST be created before file placement begins.
+2. Files MUST be placed into their canonical locations before semantic refactoring (layer role and balance corrections).
+3. After migration, non-conformant folders and orphaned files MUST be removed or moved outside the `/comsect1` boundary.
+
+For the step-by-step procedural guide, see `guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`.
+
+---
+
+## 7.10 Standalone Middleware Repository Layout
+
+A middleware module published as its own repository (not yet embedded into a consumer project)
+follows the same top-level structure as any comsect1 unit.
+
+```text
+/comsect1                       ← comsect1 root of the middleware repo
+  /api
+    mdw_<name>.h                ← public API header (the single external membrane)
+  /infra
+    /bootstrap
+      ida_core.c/h
+      poi_core.c/h
+      cfg_core.h
+  /project
+    /config
+      cfg_project.h
+    /features
+      /<feature>
+        ida_<feature>.c/h
+        poi_<feature>.c/h
+        cfg_<feature>.h
+  /deps                         ← own external dependencies (if any)
+    /extern
+    /middleware
+/examples                       ← outside /comsect1 — consumer integration examples
+/docs
+CMakeLists.txt
+```
+
+Key rules:
+- `/api` at the comsect1 root is the middleware's own public API (same rule as any comsect1 unit).
+- `/examples` and `/docs` are consumer-facing artifacts and must reside **outside** the `/comsect1`
+  boundary.
+- When this repo is later embedded as a dependency in a consumer project, the consumer places the
+  repo under their own `/deps/middleware/<name>/` and gains access through `<name>/api/` — this is
+  the consumer-side view documented in §7.7 and §13.4.1.
+
+**Common mistake**: placing `mdw_<name>.h` under `/deps/middleware/<name>/api/` inside the standalone
+repo itself. This confuses the consumer project view with the standalone repo view.
 
 ---
 

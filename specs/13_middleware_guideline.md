@@ -1,4 +1,4 @@
-﻿# 13. Middleware Integration Guideline
+# 13. Middleware Integration Guideline
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 
@@ -68,12 +68,42 @@ Configuration is injected by `prx_`/`poi_` at init/runtime.
 
 ## 13.4 Internal Structure (Fractal Pattern)
 
-A complex Middleware may internally use the same architectural shape:
+A complex Middleware may internally use the same architectural shape as the main project.
+The structure looks different depending on the viewing context.
+
+### 13.4.1 Consumer Project View (Installed Middleware)
+
+When a middleware unit is **embedded as a dependency** inside a consumer project,
+the consumer's comsect1 tree looks like:
 
 ```
-/deps/middleware/lin/
+/comsect1                          (consumer project root)
+  /deps/middleware/lin
+    /api
+      mdw_lin.h                    ← access point for prx_/poi_ in the consumer
+    /infra/bootstrap
+      ida_core.c/h
+      poi_core.c/h
+      cfg_core.h
+    /project/features/
+      /schedule
+        ida_schedule.c/h
+        prx_schedule.c/h
+        poi_schedule.c/h
+```
+
+This is the **consumer's view** — `api/` appears under `deps/middleware/<name>/` because that is
+where the middleware unit is installed.
+
+### 13.4.2 Standalone Middleware Repository View
+
+When the same middleware module is developed **as its own repository**, its `/comsect1` root follows
+the standard top-level structure (Section 7.3, Section 7.10):
+
+```
+/comsect1                          (middleware repo root)
   /api
-    mdw_lin.h
+    mdw_lin.h                      ← public API at root, NOT under deps/
   /infra/bootstrap
     ida_core.c/h
     poi_core.c/h
@@ -85,10 +115,13 @@ A complex Middleware may internally use the same architectural shape:
       poi_schedule.c/h
 ```
 
+The `/api` folder is at the comsect1 root in both contexts. The difference is only the path from
+the outer project perspective (where in the outer tree the comsect1 root is located).
+
 Notes:
 - Middleware reuses main project's `/infra` capability components.
 - Middleware must not duplicate HAL/BSP stacks.
-- `/api` is the only external membrane.
+- `/api` is the only external membrane in both views.
 
 ---
 

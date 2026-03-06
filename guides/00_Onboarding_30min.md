@@ -1,6 +1,10 @@
-﻿# comsect1 30-Minute Onboarding (Junior Engineer)
+# comsect1 30-Minute Onboarding (Junior Engineer)
 
 This guide is a time-boxed reading path to reach safe-to-contribute understanding of comsect1.
+
+> **Scope note**: This guide covers the C/embedded baseline. For OOP projects (C#, Java, VB.NET),
+> also read `specs/A2_oop_adaptation.md` after completing this path — it adapts the 3-layer model
+> to OOP constraints (Appendix B).
 
 ---
 

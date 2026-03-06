@@ -1,4 +1,4 @@
-﻿# 8. Naming Conventions
+# 8. Naming Conventions
 
 > **Terminology:** This section uses terms defined in **Section 2.7 SSOT**.
 

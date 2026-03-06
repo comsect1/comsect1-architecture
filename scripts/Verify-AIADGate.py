@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from comsect1_gate_helpers import resolve_repo_root
+
 OOP_EXTENSIONS = {".cs", ".vb"}
 
 
@@ -71,12 +73,6 @@ def run_child(cmd: list[str]) -> int:
     return int(result.returncode)
 
 
-def resolve_repo_root(script_dir: Path, repo_root_arg: str | None) -> Path:
-    if repo_root_arg:
-        return Path(repo_root_arg).resolve()
-    return (script_dir / "..").resolve()
-
-
 def resolve_root_arg(raw: str | None, repo_root: Path) -> Path | None:
     """Resolve a user-supplied root path, making relative paths absolute against repo_root."""
     if not raw:
@@ -96,10 +92,12 @@ def has_oop_files(root: Path) -> bool:
 
 
 def determine_stage_total(args: argparse.Namespace, code_root: Path | None,
-                          oop_root: Path | None) -> int:
+                          oop_root: Path | None, has_tooling_gate: bool) -> int:
     """Calculate total number of active stages for progress display."""
     total = 0
     if not args.skip_spec:
+        total += 1
+    if not args.skip_tooling and has_tooling_gate:
         total += 1
     if not args.skip_code and code_root and code_root.is_dir():
         total += 1
@@ -116,6 +114,8 @@ def main() -> int:
                         help="Root directory for OOP architecture check (auto-detected from CodeRoot if omitted)")
     parser.add_argument("-ReportPath", dest="report_path", default=None)
     parser.add_argument("-SkipSpec", dest="skip_spec", action="store_true")
+    parser.add_argument("-SkipTooling", dest="skip_tooling", action="store_true",
+                        help="Skip AI tooling consistency verification stage")
     parser.add_argument("-SkipCode", dest="skip_code", action="store_true")
     parser.add_argument("-SkipOOP", dest="skip_oop", action="store_true",
                         help="Skip OOP architecture verification stage")
@@ -124,13 +124,14 @@ def main() -> int:
     script_path = Path(__file__).resolve()
     script_dir = script_path.parent
 
-    repo_root = resolve_repo_root(script_dir, args.repo_root)
+    repo_root = resolve_repo_root(script_path, args.repo_root)
 
     report_path = Path(args.report_path) if args.report_path else (repo_root / ".aiad-gate-report.json")
     if not report_path.is_absolute():
         report_path = (repo_root / report_path).resolve()
 
     verify_spec = script_dir / "Verify-Spec.py"
+    verify_tooling = script_dir / "Verify-ToolingConsistency.py"
     verify_code = script_dir / "Verify-Comsect1Code.py"
     verify_oop = script_dir / "Verify-OOPCode.py"
 
@@ -151,7 +152,7 @@ def main() -> int:
     if oop_root is None and code_root and code_root.is_dir():
         oop_root = code_root
 
-    stage_total = determine_stage_total(args, code_root, oop_root)
+    stage_total = determine_stage_total(args, code_root, oop_root, verify_tooling.is_file())
     stage_num = 0
 
     report: dict[str, object] = {
@@ -224,7 +225,51 @@ def main() -> int:
             output_path=None,
         )
 
-    # Stage 2: C/embedded code architecture verification
+    # Stage 2: AI tooling consistency verification
+    if not args.skip_tooling:
+        if not verify_tooling.is_file():
+            add_stage_result(
+                report,
+                name="tooling",
+                status="skipped",
+                exit_code=0,
+                note="Verify-ToolingConsistency.py not found; skipped tooling stage",
+                output_path=None,
+            )
+        else:
+            stage_num += 1
+            print(f"[AIAD Gate] Stage {stage_num}/{stage_total}: Verify-ToolingConsistency")
+            tooling_cmd = [sys.executable, str(verify_tooling), "-RepoRoot", str(repo_root)]
+            tooling_exit = run_child(tooling_cmd)
+            if tooling_exit == 0:
+                add_stage_result(
+                    report,
+                    name="tooling",
+                    status="passed",
+                    exit_code=tooling_exit,
+                    note="Verify-ToolingConsistency passed",
+                    output_path=None,
+                )
+            else:
+                add_stage_result(
+                    report,
+                    name="tooling",
+                    status="failed",
+                    exit_code=tooling_exit,
+                    note="Verify-ToolingConsistency reported issues",
+                    output_path=None,
+                )
+    else:
+        add_stage_result(
+            report,
+            name="tooling",
+            status="skipped",
+            exit_code=0,
+            note="Skipped by flag",
+            output_path=None,
+        )
+
+    # Stage 3: C/embedded code architecture verification
     if not args.skip_code:
         if not code_root or not code_root.is_dir():
             add_stage_result(
@@ -276,7 +321,7 @@ def main() -> int:
             output_path=None,
         )
 
-    # Stage 3: OOP architecture verification
+    # Stage 4: OOP architecture verification
     if not args.skip_oop:
         if not verify_oop.is_file():
             add_stage_result(
@@ -350,9 +395,18 @@ def main() -> int:
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"[AIAD Gate] Report: {report_path}")
-    print(f"[AIAD Gate] Status: {'PASSED' if report.get('gatePassed') else 'FAILED'}")
+    gate_passed = report.get("gatePassed")
+    print(f"[AIAD Gate] Status: {'PASSED' if gate_passed else 'FAILED'}")
 
-    return 0 if report.get("gatePassed") else 2
+    if gate_passed:
+        print("[AIAD Gate] Gate passed -- no action required.")
+    else:
+        failed_stages = [
+            s["name"] for s in report.get("stages", []) if s.get("status") == "failed"
+        ]
+        print(f"[AIAD Gate] Gate FAILED -- stage(s) [{', '.join(failed_stages)}] must be resolved.")
+
+    return 0 if gate_passed else 2
 
 
 if __name__ == "__main__":
