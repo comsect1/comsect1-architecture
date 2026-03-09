@@ -108,7 +108,7 @@ Platform -> Feature reverse includes
 - [ ] `stm_` is used as data plane only (feature-to-feature runtime state/event).
 - [ ] `svc_`/`mdw_`/`hal_` APIs stay capability-oriented (no feature policy embedding).
 - [ ] Capability components do not include feature `ida_`/`prx_`/`poi_`.
-- [ ] No `inf_` file-role prefix exists.
+- [ ] No unlisted file-role prefix exists (only prefixes from §8.5 are valid).
 - [ ] Infra-integrated layout keeps dependency rules unchanged (no semantic relaxation by folder grouping).
 - [ ] Each `svc_` file has a header comment stating computation purpose and consumer features.
 - [ ] If a feature consuming a `svc_` was modified or removed, `svc_` consolidation/removal reviewed.
@@ -144,7 +144,7 @@ Platform -> Feature reverse includes
 |-------------|----------|
 | Layer/dependency direction (`ida_`/`prx_`/`poi_`, reverse include bans) | Yes |
 | Root folder convention (`/comsect1` boundary) | Yes |
-| Invalid role prefix (`inf_`) | Yes |
+| Unlisted role prefix (only §8.5 prefixes valid) | Yes |
 | Infra/deps required-root checks (`layout.required`) | Yes |
 | Placement/path checks (`path.*`) including `cfg_`/`db_`/`stm_` | Yes |
 | Direct `deps/...` include path ban (`include.deps_path`) | Yes |

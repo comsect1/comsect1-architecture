@@ -35,7 +35,7 @@ Idea is independent from implementation details (HAL/BSP), not from realizable h
   /codes
     /comsect1
       /api
-        api_<project>.h
+        app_<project>.h
       /project
         /config
           cfg_project_<project>.h
@@ -68,6 +68,7 @@ Idea is independent from implementation details (HAL/BSP), not from realizable h
 
 ### 2.2 Naming Rules
 
+- Application API header: `app_<project>.h` in `/api/`
 - Main projects qualify internal file names as `<prefix>_<name>_<project>` (Section 8.6)
 - Idea: `ida_<feature>_<project>.c/h`
 - Praxis: `prx_<feature>_<project>.c/h` (only when discriminator says PRX)

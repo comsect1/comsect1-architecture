@@ -198,7 +198,7 @@ comsect1 favors explicit structures that can be implemented and reviewed without
 - Infra provides execution contracts (concurrency, timeout, error mapping, resource ownership).
 - `stm_` is the feature-to-feature **data plane**.
 - `mdw_`/`svc_`/`hal_`/`bsp_` (and core execution wrappers) form the **capability plane**.
-- Prefixes remain role-based (`ida_`, `prx_`, `poi_`, `svc_`, `hal_`, ...); do not introduce `inf_` as a role prefix.
+- Prefixes remain role-based (`ida_`, `prx_`, `poi_`, `svc_`, `hal_`, ...); only prefixes listed in Section 8.5 are valid.
 
 ### 1.6.9 Clarity of purpose enables adaptation
 

@@ -46,7 +46,7 @@ Checks (3-layer aware):
 - IDA/PRX/POI role boundary rules
 - module/platform reverse dependency violations
 - infra-layout invariant (folder grouping does not relax dependency rules)
-- invalid `inf_` role prefix detection
+- unlisted role prefix detection (only §8.5 prefixes valid)
 
 Conformance enforcement:
 - All normative rules are enforced without relaxation profiles.

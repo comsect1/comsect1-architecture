@@ -29,7 +29,7 @@
   - `infra` defined as shared capability fabric (orthogonal to `ida_`/`prx_`/`poi_`)
   - data plane (`stm_`) and capability plane (`mdw_`/`svc_`/`hal_`/`bsp_`/core execution) explicitly separated
   - `IDA -> { own PRX, own POI }` interpreted as allowed dependency set, not mandatory dual call
-  - no `inf_` role prefix; visibility is achieved by folder grouping and verification
+  - only listed role prefixes are valid; visibility is achieved by folder grouping and verification
 
 ### Why PRX/POI split was restored before first release
 
@@ -110,6 +110,33 @@ Philosophical alignment note:
   `cfg_project_<unit>.h` fail with `naming.missing_unit_anchor`. `cfg_core.h` legacy
   fallback retained for bootstrap files only. §8.2 bootstrap row names updated to
   `<prefix>_core_<unit>`. §13.4.1/§13.4.2 examples reflect qualified naming.
+
+---
+
+## v1.0.1-beta
+
+### Normative additions
+
+- **`app_` prefix introduced** (§8.2, §8.5): new role prefix for main project public
+  interface. The application API header (`app_<project>.h`) in `/api/` serves as the
+  external entry point from `main.c` into the comsect1 architecture.
+- **§8.5 restructured**: prefix table reorganized into three categories — Feature Layers
+  (`ida_`/`prx_`/`poi_`), Resources (`cfg_`/`db_`/`stm_`), and External API
+  (`app_`/`mdw_`/`svc_`/`hal_`/`bsp_`). The table is now exhaustive: unlisted prefixes
+  are naming violations.
+- **§8.2.1 removed**: the specific prohibition naming a non-existent prefix is replaced
+  by the exhaustive prefix list in §8.5. Category labels use plain English words, not
+  prefix format, to avoid confusion between prefixes and categorization.
+- **§8.6 clarification**: API headers in `/api/` use the role prefix matching the unit's
+  architectural role. Sub-units use their existing role prefix (`mdw_`, `hal_`, etc.).
+  Main projects use `app_`.
+- **§7.5**: `api_<project>.h` renamed to `app_<project>.h`.
+- **§8.3**: `app_` added to the Required enforcement row.
+
+### Tooling
+
+- **Gate: `app_` recognition**: `Verify-Comsect1Code.py` recognizes `app_` as a valid
+  role prefix and validates that `app_*` files are located under `/api/`.
 
 ---
 

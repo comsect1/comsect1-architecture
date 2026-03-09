@@ -146,7 +146,7 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 ## I. Infra Capability Verification
 
 1. Prefix discipline
-- [ ] no `inf_` file-role prefix is introduced.
+- [ ] no unlisted file-role prefix is introduced (only prefixes from §8.5 are valid).
 
 2. Capability direction
 - [ ] `svc_`/`mdw_`/`hal_` components do not include feature `ida_`/`prx_`/`poi_`.

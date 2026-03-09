@@ -154,7 +154,7 @@ Rules:
 - Feature-to-feature runtime interaction uses data plane (`stm_`) only.
 - Praxis/Poiesis may call capability plane APIs.
 - Capability plane components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
-- Do not create `inf_` role prefixes; folder grouping does not change prefix semantics.
+- Only prefixes listed in Section 8.5 are valid; folder grouping does not change prefix semantics.
 
 ---
 

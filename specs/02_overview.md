@@ -235,7 +235,7 @@ Rules:
 - Feature-to-feature communication uses `stm_` only.
 - Feature-to-capability calls are allowed from Praxis/Poiesis (and core execution scope).
 - Capability components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
-- Prefixes remain role-based; do not introduce `inf_` prefix as an architectural role marker.
+- Prefixes remain role-based. Only prefixes listed in Section 8.5 are valid.
 
 ### 2.7.9 OOP language mapping
 

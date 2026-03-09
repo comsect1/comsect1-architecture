@@ -81,7 +81,7 @@ See **Section 8** for full naming rules.
   /codes
     /comsect1
       /api
-        api_<project>.h
+        app_<project>.h
       /project
         /config
           cfg_project.h

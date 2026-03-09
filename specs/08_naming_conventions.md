@@ -40,19 +40,11 @@ A newcomer should infer role, allowed dependencies, and expected responsibility 
 | **HAL** | `/infra/platform/hal/` | `hal_` | recommended |
 | **BSP** | `/infra/platform/bsp/` | `bsp_` | recommended |
 | **External modules** | `/deps/extern/` | *(external)* | optional |
+| **Application API** | `/api/` | `app_` | required for main projects |
 
 Reserved project header:
 - `/project/config/cfg_project_<unit>.h` for target configuration (Praxis/Poiesis include only)
   (This file also serves as the identity anchor for main projects — see §8.6)
-
-### 8.2.1 No `inf_` role prefix policy
-
-`infra` is a layout visibility concept, not a role prefix.
-
-- Correct: `svc_storage.c` under `/infra/service/`
-- Incorrect: `inf_storage.c`
-
-Role meaning must remain encoded by existing prefixes (`svc_`, `mdw_`, `hal_`, ...).
 
 ---
 
@@ -60,7 +52,7 @@ Role meaning must remain encoded by existing prefixes (`svc_`, `mdw_`, `hal_`, .
 
 | Role | Enforcement |
 |------|-------------|
-| `ida_`, `prx_`, `poi_`, `cfg_`, `db_`, `stm_` in project-owned code | Required |
+| `app_`, `ida_`, `prx_`, `poi_`, `cfg_`, `db_`, `stm_` in project-owned code | Required |
 | `mdw_`, `svc_`, `hal_`, `bsp_` for reusable/external code | Recommended |
 
 Primary enforcement remains human code review. Optional scripts may assist, but architecture meaning is human-owned.
@@ -85,16 +77,32 @@ Primary enforcement remains human code review. Optional scripts may assist, but 
 
 ## 8.5 Prefix Selection Rationale
 
+This table is exhaustive. Only prefixes listed here are valid architectural
+role prefixes. Any prefix not in this table is a naming violation.
+
+### Feature Layers
+
 | Prefix | Role |
 |--------|------|
 | `ida_` | intent and domain decision |
 | `prx_` | externally-coupled domain interpretation |
 | `poi_` | mechanical production/bridging |
-| `mdw_` | middleware |
-| `svc_` | service |
-| `stm_` | datastream |
+
+### Resources
+
+| Prefix | Role |
+|--------|------|
 | `cfg_` | configuration |
 | `db_`  | static data tables |
+| `stm_` | datastream |
+
+### External API
+
+| Prefix | Role |
+|--------|------|
+| `app_` | main project public interface |
+| `mdw_` | middleware |
+| `svc_` | service |
 | `hal_` | hardware abstraction layer |
 | `bsp_` | board support package |
 
@@ -124,6 +132,10 @@ Scope:
 - Applies to: `ida_`, `prx_`, `poi_`, `cfg_`, `db_` files in `/infra/` and `/project/`
 - Exempt: `api/<header>.h` (already named with the unit identity)
 - Exempt: `svc_`, `hal_`, `bsp_` files (shared infrastructure, intentionally reused)
+
+API headers in `/api/` use the role prefix that matches the unit's architectural
+role. Sub-units use their existing role prefix (`mdw_`, `hal_`, etc.). Main
+projects use `app_` because no other single role prefix applies.
 
 **Unit identity declaration**:
 

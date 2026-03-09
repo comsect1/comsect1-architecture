@@ -76,6 +76,8 @@ def get_role_info(file_name: str, unit_name: str | None = None) -> tuple[str, st
         return "bsp", None
     if re.match(r"^stm_", stem):
         return "datastream", None
+    if re.match(r"^app_", stem):
+        return "app", None
 
     return "unknown", None
 
@@ -147,7 +149,7 @@ def test_is_same_feature_include(
 def detect_unit_name(root_path: Path) -> str | None:
     """Detect the unit identifier for any comsect1 unit (§8.6).
 
-    Sub-unit (api/ present): derived from api/<role>_<unit>.h
+    Sub-unit (api/ present): derived from api/<role>_<unit>.h (e.g. mdw_comm.h, app_demo.h)
     Main project (no api/):  derived from project/config/cfg_project_<unit>.h
 
     Returns None if unit cannot be determined (legacy project not yet migrated).
@@ -396,6 +398,8 @@ def main() -> int:
             err(str(file), 1, "path.infra_hal", "hal_* files must be located under /infra/platform/hal (root or nested architecture unit).")
         elif role == "bsp" and not is_under_any_bsp:
             err(str(file), 1, "path.infra_bsp", "bsp_* files must be located under /infra/platform/bsp (root or nested architecture unit).")
+        elif role == "app" and not test_is_under_path(full_file_path, api_dir):
+            err(str(file), 1, "path.app", "app_* files must be located under /api.")
         elif role == "middleware" and not is_under_deps_middleware and not is_under_deps_extern and not test_is_under_path(full_file_path, api_dir):
             err(str(file), 1, "path.deps_middleware", "mdw_* files must be located under /deps/middleware, /deps/extern, or /api.")
         elif role == "idea" and not is_under_any_project_features:

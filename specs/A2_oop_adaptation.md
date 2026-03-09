@@ -37,7 +37,7 @@ The following are **language-invariant**. They hold in C, OOP, functional, and a
 9. Core contract scope: `ida_core` (policy) + execution layer (Section 1.7)
 10. AIAD gate as acceptance criterion (Section 1.3.3)
 11. `svc_` placement: `/infra/service/` only (Section 7.5)
-12. No `inf_` role prefix: folder grouping does not change prefix semantics (Section 5.2.4)
+12. Only prefixes listed in Section 8.5 are valid: folder grouping does not change prefix semantics (Section 5.2.4)
 
 These invariants are **not relaxed** by adopting an OOP language.
 
