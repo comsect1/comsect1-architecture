@@ -21,7 +21,11 @@ MIN_PRX_LINES_FOR_FAT_CHECK = 5
 MIN_POI_WRAPPER_COUNT = 2
 
 DOMAIN_CONDITIONAL_RE = re.compile(
-    r"\b(?:if|switch|case)\b.*\b(?:mode|state|status|level|type|flag|enable|disable|active|threshold)\b",
+    r"\b(?:if|switch|case)\b.*\b(?:"
+    r"mode|state|status|level|type|flag|enable|disable|active|threshold"
+    r"|sid|pci|fid|wildcard|supplier|function|identifier"
+    r"|node_cfg|tp_state|pdu_type|frame_id|checksum"
+    r")\b",
     re.IGNORECASE,
 )
 
