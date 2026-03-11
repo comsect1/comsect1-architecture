@@ -18,11 +18,18 @@ from typing import Callable
 
 MIN_IDA_LINES = 10
 MIN_PRX_LINES_FOR_FAT_CHECK = 5
+MIN_POI_WRAPPER_COUNT = 2
 
 DOMAIN_CONDITIONAL_RE = re.compile(
     r"\b(?:if|switch|case)\b.*\b(?:mode|state|status|level|type|flag|enable|disable|active|threshold)\b",
     re.IGNORECASE,
 )
+
+# Detect Poi_ functions whose body is a single pass-through call to a Prx_ function.
+# Matches: ReturnType Poi_Name(args) { [return] Prx_Name(args); }
+# Excludes nested braces (complex bodies won't match).
+_POI_WRAPPER_BODY_RE = re.compile(r"\bPoi_\w+\s*\([^()]*\)\s*\{([^{}]*)\}", re.DOTALL)
+_PRX_SINGLE_CALL_RE = re.compile(r"^\s*(?:return\s+)?Prx_\w+\s*\([^;]*\)\s*;\s*$", re.DOTALL)
 
 
 # ---------------------------------------------------------------------------
@@ -307,3 +314,25 @@ def verify_red_flags_common(
                     )
             except OSError:
                 pass
+
+    # Red Flag: Poi Wrapper
+    # poi_ functions that are pure single-call pass-throughs to prx_ indicate
+    # that the ops table or callback registration should reference the prx_
+    # function pointer directly rather than routing through a poi_ intermediary.
+    for f in poi_files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+            wrapper_count = sum(
+                1 for m in _POI_WRAPPER_BODY_RE.finditer(text)
+                if _PRX_SINGLE_CALL_RE.match(m.group(1))
+            )
+            if wrapper_count >= MIN_POI_WRAPPER_COUNT:
+                add_finding(
+                    findings, "warning", f, 0, "red-flag-poi-wrapper",
+                    f"poi_ contains {wrapper_count} function(s) that are pure "
+                    "pass-throughs to prx_. "
+                    "Register prx_ function pointers directly in the ops table "
+                    "instead of wrapping them in poi_.",
+                )
+        except OSError:
+            pass

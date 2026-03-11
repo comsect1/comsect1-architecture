@@ -6,6 +6,36 @@ All developers and AI agents must familiarize themselves with and adhere to this
 
 ---
 
+## Safety Precondition for Destructive Operations
+
+Before any task that deletes, moves, overwrites, resets, or re-clones files,
+the agent must complete the following safety preflight:
+
+1. Classify each target path as one of:
+   - repo-local artifact directory
+   - repository root
+   - workspace root or multi-repository parent directory
+2. Treat workspace roots and multi-repository parent directories as forbidden
+   destructive targets by default.
+3. If the user explicitly requests a destructive action above the current
+   repository, restate the exact absolute paths and exact action, then obtain
+   explicit confirmation after that restatement before executing anything.
+4. Capture pre-operation evidence for every target path:
+   - absolute path
+   - immediate children
+   - whether it is a git repository
+   - remote or recovery source if reconstruction is planned
+5. Prefer isolated recovery paths such as `*_recovered` or another separate
+   directory before deleting or overwriting the original location.
+6. Limit routine cleanup to explicitly named build/output folders inside the
+   current repository. Do not infer sibling repositories from naming patterns.
+7. If any part of the scope is ambiguous, stop and ask.
+
+This safety precondition overrides convenience. No execution guide step may be
+used to justify skipping it.
+
+---
+
 ## Standard Development Workflow
 
 All work on a comsect1 project follows the four-stage workflow below.

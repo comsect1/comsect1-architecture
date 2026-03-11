@@ -27,6 +27,36 @@ not every adapter.
 - Preserve philosophical precision when discussing intent and rationale.
 - Prefer concrete, enforceable language when discussing technical rules.
 
+### 1.1 Destructive Operation Safety
+
+Treat workspace roots, multi-repository parent directories, drive roots, home
+directories, and other shared parent paths as high-risk boundaries.
+
+Rules:
+
+- Never execute destructive commands against a high-risk boundary based on
+  inference, convenience, or pattern matching.
+- Destructive commands include, at minimum: recursive delete, force delete,
+  mass move, overwrite restore, re-clone into an existing path, `git clean`,
+  `git reset --hard`, and similar scope-expanding operations.
+- If the requested action affects more than one repository or targets a parent
+  directory above the current repository, the agent MUST restate the exact
+  absolute paths and the exact destructive action, then obtain explicit user
+  confirmation after that restatement before executing anything.
+- A vague request such as "clean it", "delete the leftovers", "reclone
+  everything", or "reset the repos" is not sufficient authorization for
+  deleting inferred sibling paths.
+- Repo-local artifact cleanup is allowed only for explicitly named build or
+  output directories inside the current repository.
+- Prefer non-destructive recovery first: clone into a separate recovery path
+  or sibling `*_recovered` directory before deleting or overwriting the
+  original path.
+- Before any destructive action, capture and report the current state of the
+  target scope: absolute path, whether it is a git repository, and what
+  immediate children will be affected.
+- If target ownership or scope is ambiguous, stop and ask. Do not widen the
+  scope.
+
 ---
 
 ## 2. Canonical Source Priority
