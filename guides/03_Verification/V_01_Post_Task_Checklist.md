@@ -150,9 +150,13 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 
 2. Capability direction
 - [ ] `svc_`/`mdw_`/`hal_` components do not include feature `ida_`/`prx_`/`poi_`.
+- [ ] unit identity anchors are consistent: `app_<unit>.h` and `cfg_project_<unit>.h` resolve to the same `<unit>`.
+- [ ] non-platform files do not directly include vendor/device/BSP/CMSIS headers or raw platform symbols.
+- [ ] files mixing peripheral abstraction and board wiring are reviewed as HAL/BSP mixed responsibility.
 
 3. Layout invariants
 - [ ] infra-integrated folders do not relax layer dependency rules.
+- [ ] platform responsibility is not hiding in feature files, services, middleware, or legacy folders.
 
 ---
 
@@ -163,6 +167,7 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 1. Folder structure
 - [ ] Canonical folder skeleton (specs Section 7.5) is fully present.
 - [ ] No legacy layout folders remain (`/modules/`, `/platform/` at root, etc.).
+- [ ] Repo-root build files agree with the final `/infra/platform/hal` and `/infra/platform/bsp` structure.
 
 2. Boundary enforcement
 - [ ] No files outside canonical locations within `/comsect1`.

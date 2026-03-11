@@ -78,6 +78,13 @@ Idea is independent from implementation details (HAL/BSP), not from realizable h
 - Datastream: `stm_<name>.h`
 - Resources: `cfg_<feature>_<project>.h`, `db_<feature>_<project>.h`
 
+Official setup sequence:
+- choose one stable project unit token before creating files
+- create `app_<unit>.h` under `/api/`
+- create `cfg_project_<unit>.h` under `/project/config/`
+- use the same `<unit>` for all internal `ida_`/`prx_`/`poi_`/`cfg_`/`db_` file names
+- align build references immediately; do not keep legacy base-name references alongside qualified names
+
 ### 2.3 Core Contract (`cfg_core_<project>.h`)
 
 Define shared contract vocabulary here:

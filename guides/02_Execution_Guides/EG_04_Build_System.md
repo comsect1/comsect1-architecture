@@ -66,7 +66,23 @@ The build still points at directories such as `/infra/bootstrap/` and `/project/
 
 ---
 
-## 4. Configuration Management
+## 4. Unit Identity Wiring
+
+Before compiling the first internal source file:
+- define one unit token and keep it stable
+- ensure `app_<unit>.h` and `cfg_project_<unit>.h` use the same `<unit>`
+- update source lists, generated-code references, and include statements to the qualified file names in the same change set
+- if a build file still references `cfg_project.h` or unqualified `ida_`/`prx_`/`poi_`/`cfg_`/`db_` file names, the migration is incomplete
+
+Repo-root build files should also be reviewed for platform evidence:
+- MCU/BSP macro branches
+- BSP target links
+- BSP/platform include paths
+- dummy or fallback platform selection
+
+---
+
+## 5. Configuration Management
 
 - **Core contract:** `/infra/bootstrap/cfg_core_<unit>.h`
 - **Project target config:** `/project/config/cfg_project_<unit>.h`

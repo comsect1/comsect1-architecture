@@ -42,9 +42,13 @@ The unified runner (`Verify-AIADGate.py`) auto-detects the project type and acti
 
 Checks (3-layer aware):
 - dedicated `/comsect1` root boundary (Section 7.2 Root Folder Convention)
+- unit identity anchors and unit-qualified naming consistency
 - include/dependency direction
 - IDA/PRX/POI role boundary rules
 - module/platform reverse dependency violations
+- semantic misplaced detection for platform-coupled code outside `/infra/platform/`
+- repo-root build evidence scan (MCU/BSP branches, BSP include paths, BSP target links, dummy fallbacks)
+- HAL/BSP mixed responsibility advisory
 - infra-layout invariant (folder grouping does not relax dependency rules)
 - unlisted role prefix detection (only §8.5 prefixes valid)
 

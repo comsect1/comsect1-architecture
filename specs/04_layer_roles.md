@@ -273,6 +273,44 @@ Rules:
 Platform is part of the execution **capability plane**.
 It provides mechanisms, not feature policy.
 
+### 4.3.1 Platform Evidence
+
+Folder naming alone is not sufficient to prove platform responsibility.
+
+Platform evidence includes:
+- vendor/device/BSP/CMSIS header includes
+- raw peripheral/register/interrupt symbols
+- board timer/clock/init/wiring APIs
+- repo-root build rules that select MCU/BSP/platform implementations
+
+If such evidence appears outside `/infra/platform/`, the current placement is
+semantically wrong even if the prefix or folder otherwise looks valid.
+
+### 4.3.2 HAL vs BSP Split
+
+Platform has two distinct responsibilities:
+- `hal_`: peripheral abstraction and MCU-facing execution mechanisms
+- `bsp_`: board wiring, clocks, pins, boot sequencing, and board-owned device composition
+
+Rules:
+- HAL may depend on BSP.
+- BSP must not depend on HAL.
+- Peripheral abstraction and board wiring should not be collapsed into one responsibility without explicit justification.
+
+### 4.3.3 Mixed Responsibility Advisory
+
+When one file mixes both peripheral abstraction and board wiring evidence, the
+architecture should treat it as a review advisory even before extraction is
+complete.
+
+Typical mixed signals:
+- peripheral registers or interrupt primitives in the same file as board pin,
+  board timer, board clock, or BSP-owned initialization logic
+- one file both wraps MCU peripheral access and decides board-specific routing
+
+The preferred direction is to split the file into `hal_` and `bsp_`
+responsibilities.
+
 ---
 
 ## 4.4 Quick Role Table

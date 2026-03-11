@@ -50,7 +50,7 @@ each violation. Do not read unrelated sections.
 | `layer-balance` | `specs/04_layer_roles.md` |
 | `red-flag-*` | `specs/11_checklist.md` (advisory, proceed to Phase 2) |
 | `naming.*` | `specs/08_naming_conventions.md` |
-| `module.include`, `module.resource`, `platform.*` | `specs/05_dependency_rules.md` |
+| `module.include`, `module.resource`, `platform.*` | `specs/04_layer_roles.md` + `specs/05_dependency_rules.md` + `specs/07_folder_structure.md` |
 | OOP: `ida-no-*`, `reverse-dep`, `cross-feature` | `specs/A2_oop_adaptation.md` |
 
 ---
@@ -68,6 +68,7 @@ Do NOT read spec files yet.
   project structure.
 - Identify build system (CMake, MSBuild, npm, etc.).
 - Note whether this is embedded/firmware, desktop, backend, or mobile.
+- Note whether repo-root build files contain MCU/BSP/platform routing evidence.
 - Determine architecture variant:
   - C/embedded (`.c`/`.h`) — standard spec rules
   - OOP (`.cs`/`.vb`/`.java`) — A2 appendix rules
@@ -79,7 +80,7 @@ Do not read spec files for this step.
 
 Run the appropriate gate script:
 
-- C/embedded → `Verify-Comsect1Code.py -Root <comsect1_root>`
+- C/embedded → `Verify-Comsect1Code.py -Root <comsect1_root> -RepoRoot <repo_root>`
 - OOP → `Verify-OOPCode.py -Root <comsect1_root>`
 - Spec repository → `Verify-Spec.py` + `Verify-ToolingConsistency.py`
 - Unified runner → `Verify-AIADGate.py`
@@ -108,6 +109,9 @@ Read `specs/02_overview.md` Section 2.3 for the discriminator.
 For OOP projects: also read `specs/A2_oop_adaptation.md`.
 
 If the project has 0 `ida_`/`prx_`/`poi_` files: tag `<ABSENT>`, proceed.
+If platform-coupled evidence exists outside `/infra/platform/`, do not use
+`<ABSENT>` for missing `hal_`/`bsp_`; tag the situation `<MISALIGNED>` and
+describe it as misplaced platform responsibility.
 
 | Current file/class | Proposed layer | Discriminator path | Tag | Rationale |
 |--------------------|----------------|--------------------|-----|-----------|

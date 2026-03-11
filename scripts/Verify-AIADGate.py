@@ -289,6 +289,8 @@ def main() -> int:
                 str(verify_code),
                 "-Root",
                 str(code_root),
+                "-RepoRoot",
+                str(repo_root),
                 "-JsonOut",
                 str(code_json),
             ]

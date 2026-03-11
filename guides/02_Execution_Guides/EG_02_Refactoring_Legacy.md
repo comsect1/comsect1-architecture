@@ -17,6 +17,7 @@ Collect:
 - dependency map (`#include` graph)
 - hardware-touching call sites
 - business decision hotspots
+- repo-root build references that select MCU/BSP/platform code paths
 
 ### 1.2 Smell Checklist
 
@@ -60,6 +61,10 @@ Migration follows a spatial-first progression: establish physical structure befo
 2. **Place** existing files into canonical folders; split unseparated files into `ida_`/`prx_`/`poi_`
 3. **Verify & refactor** layer roles, balance, and dependency direction
 4. **Clean up** non-conformant remnants (legacy folders, orphaned files, boundary violations)
+
+During planning, treat direct vendor/device/BSP/CMSIS includes, raw register
+symbols, and board wiring APIs as platform evidence even when they appear in
+`svc_`, `mdw_`, feature files, or legacy folders.
 
 ### 2.3 Risk Control
 
@@ -164,6 +169,17 @@ After layer refactoring, review all `svc_` files affected by the migration:
 - Ensure every `svc_` file has a header comment documenting its purpose and consumer features (Section 4.2.3).
 - If uncertain about consolidation, consult the user before proceeding.
 
+**Misplaced platform cleanup:**
+
+After layer cleanup, review whether platform responsibility is still sitting in
+non-platform files:
+- raw vendor/device/BSP/CMSIS includes outside `/infra/platform/`
+- direct register, interrupt, or board-wiring symbols outside `hal_`/`bsp_`
+- build files referencing legacy `platform/` or `port/` paths instead of the final `/infra/platform/` structure
+
+Do not mark HAL/BSP as absent while those signals already exist elsewhere in
+the tree. Extract and relocate the responsibility instead.
+
 ### 3.5 Step 4: Boundary Cleanup
 
 After refactoring is complete, remove non-conformant remnants:
@@ -234,6 +250,8 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 - [ ] non-comsect1 files moved outside `/comsect1` boundary
 - [ ] no orphaned/unused headers or sources from pre-migration
 - [ ] build system references match final folder structure
+- [ ] repo-root build files reviewed for MCU/BSP branches, BSP include paths, BSP target links, and dummy fallbacks
+- [ ] missing `hal_`/`bsp_` is not called absent when platform-coupled code still exists elsewhere
 
 ### 5.5 Documentation
 

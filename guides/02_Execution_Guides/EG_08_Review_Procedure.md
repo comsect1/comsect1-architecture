@@ -64,6 +64,9 @@ Perform each check in order.
 
 - Platform (HAL/BSP) must NOT include feature headers (ida_/prx_/poi_).
 - Resources (cfg_/db_/stm_) must NOT include any upper-layer header.
+- Non-platform files must not directly include vendor/device/BSP/CMSIS headers or raw platform symbols.
+- If platform evidence appears outside `/infra/platform/`, review it as misplaced platform responsibility.
+- If one file mixes peripheral abstraction and board wiring, review it as "HAL/BSP mixed responsibility" advisory.
 
 ### 5. Praxis justification (advisory)
 

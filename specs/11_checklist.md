@@ -60,8 +60,8 @@ For every file that touches external dependencies:
 
 ## 11.6 Resource Access Verification
 
-- [ ] `cfg_core.h` is treated as contract vocabulary and allowed in all layers
-- [ ] `cfg_project.h`, feature `cfg_`, feature `db_` are accessed only by Praxis/Poiesis
+- [ ] `cfg_core_<unit>.h` is treated as contract vocabulary and allowed in all layers
+- [ ] `cfg_project_<unit>.h`, feature `cfg_`, feature `db_` are accessed only by Praxis/Poiesis
 - [ ] `stm_` is accessed only by Praxis/Poiesis
 - [ ] Capability components (`mdw_`, `svc_`) do not directly include project/feature resources
 
@@ -108,6 +108,9 @@ Platform -> Feature reverse includes
 - [ ] `stm_` is used as data plane only (feature-to-feature runtime state/event).
 - [ ] `svc_`/`mdw_`/`hal_` APIs stay capability-oriented (no feature policy embedding).
 - [ ] Capability components do not include feature `ida_`/`prx_`/`poi_`.
+- [ ] Non-platform files do not directly include vendor/device/BSP/CMSIS headers or raw platform symbols.
+- [ ] Feature `prx_`/`poi_` consume platform through `hal_` APIs rather than direct device headers.
+- [ ] Files mixing peripheral abstraction and board wiring are reviewed as HAL/BSP mixed responsibility.
 - [ ] No unlisted file-role prefix exists (only prefixes from §8.5 are valid).
 - [ ] Infra-integrated layout keeps dependency rules unchanged (no semantic relaxation by folder grouping).
 - [ ] Each `svc_` file has a header comment stating computation purpose and consumer features.
@@ -122,7 +125,9 @@ Platform -> Feature reverse includes
 - [ ] No files exist outside canonical locations within `/comsect1`
 - [ ] Files not belonging to comsect1 scope are moved outside `/comsect1` boundary
 - [ ] No orphaned/unused headers or sources remain from pre-migration
-- [ ] Build system references (include paths, source lists) match final folder structure
+- [ ] Build system references (include paths, source lists, target links, conditional source selection) match final folder structure
+- [ ] Repo-root build files are reviewed for platform evidence (MCU/BSP macro branches, BSP include paths, BSP target links, dummy fallbacks)
+- [ ] When platform-coupled code exists elsewhere, missing `hal_`/`bsp_` structure is treated as misplaced responsibility, not `<ABSENT>`
 
 ---
 

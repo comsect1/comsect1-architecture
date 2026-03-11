@@ -134,8 +134,8 @@ See **Section 8** for full naming rules.
 Resources like `cfg_` and `db_` are co-located with their owning feature.
 
 - `cfg_<feature>.h`, `db_<feature>.h` live in `/project/features/<feature>/`.
-- Project-wide target configuration lives in `/project/config/cfg_project.h`.
-- Core contract vocabulary lives in `/infra/bootstrap/cfg_core.h`.
+- Project-wide target configuration lives in `/project/config/cfg_project_<unit>.h`.
+- Core contract vocabulary lives in `/infra/bootstrap/cfg_core_<unit>.h`.
 
 **Datastream (`stm_`) placement** depends on scope:
 
@@ -148,6 +148,21 @@ Access invariants:
 - Idea does not access `cfg_`/`db_`/`stm_` directly.
 - Praxis/Poiesis may access own feature resources and `stm_`.
 - Feature-to-feature runtime interaction is datastream-only.
+
+### 7.6.1 Semantic Placement and Misplaced Classification
+
+Folder placement is a declaration, not the final proof of responsibility.
+
+Rules:
+- Prefix, folder path, direct dependencies, and code evidence must agree.
+- If a file's direct includes, symbols, or build references show a different
+  responsibility than its current folder/prefix, the file is misplaced.
+- Platform-coupled evidence outside `/infra/platform/` is a layout violation
+  even if the file currently sits under `/project/`, `/infra/service/`,
+  `/deps/`, or a legacy folder.
+- During migration, structural absence is contextual. When platform
+  responsibility is found elsewhere in the tree, `hal_`/`bsp_` should not be
+  judged absent; the responsibility is present but misplaced.
 
 ---
 

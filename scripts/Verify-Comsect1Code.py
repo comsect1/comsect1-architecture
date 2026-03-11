@@ -25,6 +25,52 @@ from comsect1_gate_helpers import (
 SOURCE_EXTENSIONS = {".c", ".h", ".cpp", ".hpp"}
 INCLUDE_REGEX = re.compile(r'^\s*#\s*include\s*[<"](?P<path>[^">]+)[">]')
 SYSTEM_INCLUDE_REGEX = re.compile(r"^\s*#\s*include\s*<")
+PLATFORM_PATH_SEGMENT_RE = re.compile(r"(^|[\\/])(?:cmsis|vendor|device|board|boards?|bsp|port|ports)([\\/]|$)", re.IGNORECASE)
+PLATFORM_PORT_SEGMENT_RE = re.compile(r"(^|[\\/])ports?([\\/]|$)", re.IGNORECASE)
+BOARD_INCLUDE_LEAF_RE = re.compile(r"^(?:bsp_|board_)", re.IGNORECASE)
+LEGACY_PLATFORM_BUILD_PATH_RE = re.compile(r"(^|[\\/])(?:platform|ports?)([\\/]|$)", re.IGNORECASE)
+BUILD_FILE_PATTERNS = ("CMakeLists.txt", "*.cmake", "Makefile", "makefile", "*.mk")
+BUILD_SKIP_DIRS = {".git", ".hg", ".svn", ".cmakebuild", "build", "out", "dist", "node_modules", ".venv", "venv", "__pycache__"}
+BUILD_EVIDENCE_RULES: tuple[tuple[str, re.Pattern[str], str], ...] = (
+    (
+        "macro-branch",
+        re.compile(r"\b(?:if|elseif)\s*\(.*(?:mcu|bsp|board|device|cmsis|vendor)[A-Za-z0-9_/-]*", re.IGNORECASE),
+        "MCU/BSP conditional branch",
+    ),
+    (
+        "compile-def",
+        re.compile(r"\b(?:add_definitions|add_compile_definitions|target_compile_definitions)\b.*(?:mcu|bsp|board|device|cmsis|vendor)[A-Za-z0-9_/-]*", re.IGNORECASE),
+        "MCU/BSP compile definition",
+    ),
+    (
+        "target-link",
+        re.compile(r"\btarget_link_libraries\b.*(?:bsp|board|cmsis|vendor|device|hal)[A-Za-z0-9_./\\-]*", re.IGNORECASE),
+        "BSP/platform target link",
+    ),
+    (
+        "include-path",
+        re.compile(r"\b(?:include_directories|target_include_directories|include)\b.*(?:bsp|board|cmsis|vendor|device|platform[\\/](?:hal|bsp)|[\\/]ports?[\\/])", re.IGNORECASE),
+        "BSP/platform include path",
+    ),
+    (
+        "dummy-fallback",
+        re.compile(r"\b(?:dummy|fallback)\b", re.IGNORECASE),
+        "dummy or fallback platform wiring",
+    ),
+)
+PLATFORM_SYMBOL_RULES: tuple[tuple[str, re.Pattern[str], str], ...] = (
+    ("peripheral", re.compile(r"\bNVIC_[A-Za-z0-9_]+\b"), "NVIC interrupt primitive"),
+    ("peripheral", re.compile(r"\bPORT_REGS\b"), "PORT_REGS device register"),
+    ("peripheral", re.compile(r"\bSERCOM_[A-Za-z0-9_]*\b"), "SERCOM peripheral symbol"),
+    ("peripheral", re.compile(r"\b__WFI\b"), "__WFI power primitive"),
+    ("board", re.compile(r"\bBOARD_[A-Za-z0-9_]+\b"), "board macro or constant"),
+    ("board", re.compile(r"\bBsp_[A-Za-z0-9_]+\b"), "BSP API"),
+    (
+        "board",
+        re.compile(r"\bBoard_(?:Timer|Clock|Pin|Gpio|GPIO|Init|Boot|Uart|UART|Spi|SPI|I2c|I2C|Sercom|SERCOM)[A-Za-z0-9_]*\b"),
+        "board-owned hardware API",
+    ),
+)
 
 # C-specific code line counter: skip preprocessor directives
 count_code_lines = partial(_count_code_lines, line_comment_prefixes=("//",), skip_preprocessor=True)
@@ -40,18 +86,25 @@ def get_role_info(file_name: str, unit_name: str | None = None) -> tuple[str, st
     if re.match(r"^inf_", stem):
         return "invalid_prefix", None
 
+    core_cfg_names = {"cfg_core"}
+    core_map: dict[str, str] = {
+        "ida_core": "core_idea",
+        "poi_core": "core_poiesis",
+        "prx_core": "core_praxis",
+    }
+
     if unit_name:
-        core_map: dict[str, str] = {
-            f"ida_core_{unit_name}": "core_idea",
-            f"poi_core_{unit_name}": "core_poiesis",
-            f"prx_core_{unit_name}": "core_praxis",
-        }
-    else:
-        core_map: dict[str, str] = {
-            "ida_core": "core_idea",
-            "poi_core": "core_poiesis",
-            "prx_core": "core_praxis",
-        }
+        core_cfg_names.add(f"cfg_core_{unit_name}")
+        core_map.update(
+            {
+                f"ida_core_{unit_name}": "core_idea",
+                f"poi_core_{unit_name}": "core_poiesis",
+                f"prx_core_{unit_name}": "core_praxis",
+            }
+        )
+
+    if stem in core_cfg_names:
+        return "core_cfg", "core"
     if stem in core_map:
         return core_map[stem], "core"
 
@@ -83,21 +136,26 @@ def get_role_info(file_name: str, unit_name: str | None = None) -> tuple[str, st
 
 
 def get_includes(path: Path) -> list[dict[str, object]]:
+    text = path.read_text(encoding="utf-8")
+    return get_includes_from_text(text)
+
+
+def get_includes_from_text(text: str) -> list[dict[str, object]]:
     includes: list[dict[str, object]] = []
-    with path.open("r", encoding="utf-8") as handle:
-        for idx, line in enumerate(handle, start=1):
-            m = INCLUDE_REGEX.match(line)
-            if not m:
-                continue
-            include_path = m.group("path")
-            includes.append(
-                {
-                    "Line": idx,
-                    "IncludePath": include_path,
-                    "Leaf": os.path.basename(include_path),
-                    "Raw": line.rstrip("\n"),
-                }
-            )
+    for idx, line in enumerate(text.splitlines(), start=1):
+        line = line.lstrip("\ufeff")
+        m = INCLUDE_REGEX.match(line)
+        if not m:
+            continue
+        include_path = m.group("path")
+        includes.append(
+            {
+                "Line": idx,
+                "IncludePath": include_path,
+                "Leaf": os.path.basename(include_path),
+                "Raw": line.rstrip("\n"),
+            }
+        )
     return includes
 
 
@@ -142,6 +200,59 @@ def test_is_same_feature_include(
     return test_is_same_feature_header(leaf=leaf, prefix=prefix, feature=feature)
 
 
+_VALID_API_ROLE_PREFIXES = {"app", "mdw", "hal", "svc", "bsp"}
+
+
+def extract_api_unit(header_name: str) -> str | None:
+    stem = Path(header_name).stem
+    if "_" in stem:
+        prefix, remainder = stem.split("_", 1)
+        if prefix.lower() in _VALID_API_ROLE_PREFIXES and remainder:
+            return remainder.lower()
+        return None
+    return stem.lower() if stem else None
+
+
+def detect_unit_identity(root_path: Path) -> dict[str, object]:
+    api_dir = root_path / "api"
+    api_units: set[str] = set()
+    api_headers: list[Path] = []
+    if api_dir.is_dir():
+        for h in sorted(api_dir.glob("*.h")):
+            unit = extract_api_unit(h.name)
+            if not unit:
+                continue
+            api_units.add(unit)
+            api_headers.append(h)
+
+    project_config_dir = root_path / "project" / "config"
+    project_units: set[str] = set()
+    project_headers: list[Path] = []
+    if project_config_dir.is_dir():
+        for h in sorted(project_config_dir.glob("cfg_project_*.h")):
+            stem = h.stem
+            inner = stem[len("cfg_project_"):]
+            if inner:
+                project_units.add(inner.lower())
+                project_headers.append(h)
+
+    resolved_unit: str | None = None
+    if len(api_units) == 1:
+        resolved_unit = next(iter(api_units))
+    elif len(project_units) == 1:
+        resolved_unit = next(iter(project_units))
+    elif len(api_units | project_units) == 1:
+        resolved_unit = next(iter(api_units | project_units))
+
+    return {
+        "api_units": api_units,
+        "api_headers": api_headers,
+        "project_units": project_units,
+        "project_headers": project_headers,
+        "resolved_unit": resolved_unit,
+    }
+
+
 
 
 
@@ -178,9 +289,142 @@ def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def stem_has_unit_suffix(stem: str, unit_name: str) -> bool:
+    return stem.lower().endswith(f"_{unit_name.lower()}")
+
+
+def requires_unit_qualification(
+    stem: str,
+    *,
+    is_under_any_bootstrap: bool,
+    is_under_any_project_features: bool,
+    is_under_any_project_config: bool,
+) -> bool:
+    stem_lower = stem.lower()
+    if not (
+        is_under_any_bootstrap
+        or is_under_any_project_features
+        or is_under_any_project_config
+    ):
+        return False
+    if stem_lower == "cfg_project" or stem_lower.startswith("cfg_project_"):
+        return True
+    return stem_lower.startswith(("ida_", "prx_", "poi_", "cfg_", "db_"))
+
+
+def discover_repo_root(root_path: Path, repo_root_arg: str | None) -> Path:
+    if repo_root_arg:
+        return Path(repo_root_arg).resolve()
+
+    for candidate in [root_path, *root_path.parents]:
+        if any((candidate / name).is_file() for name in ("CMakeLists.txt", "Makefile", "makefile")):
+            return candidate
+    return root_path
+
+
+def collect_build_evidence(repo_root: Path) -> list[dict[str, object]]:
+    evidence: list[dict[str, object]] = []
+    seen_files: set[Path] = set()
+
+    for pattern in BUILD_FILE_PATTERNS:
+        for path in repo_root.rglob(pattern):
+            if not path.is_file():
+                continue
+            if path in seen_files:
+                continue
+            if any(part.lower() in BUILD_SKIP_DIRS for part in path.parts):
+                continue
+            seen_files.add(path)
+            try:
+                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+
+            for line_no, line in enumerate(lines, start=1):
+                for kind, regex, message in BUILD_EVIDENCE_RULES:
+                    if regex.search(line):
+                        evidence.append(
+                            {
+                                "file": path,
+                                "line": line_no,
+                                "kind": kind,
+                                "message": message,
+                                "text": line.strip().lstrip("\ufeff"),
+                            }
+                        )
+    return evidence
+
+
+def detect_platform_include_evidence(include_path: str, leaf: str) -> tuple[str, str] | None:
+    normalized = include_path.replace("\\", "/")
+    lower_path = normalized.lower()
+    lower_leaf = leaf.lower()
+
+    if lower_leaf.startswith("bsp_") or BOARD_INCLUDE_LEAF_RE.search(lower_leaf):
+        return ("board", f"direct board/BSP include: {include_path}")
+    if PLATFORM_PATH_SEGMENT_RE.search(normalized):
+        category = (
+            "board"
+            if re.search(r"(^|/)(?:board|boards?|bsp|port|ports)(/|$)", lower_path)
+            else "peripheral"
+        )
+        return (category, f"raw platform include path: {include_path}")
+    return None
+
+
+def collect_platform_evidence(
+    includes: list[dict[str, object]],
+    text: str,
+) -> list[dict[str, object]]:
+    evidence: list[dict[str, object]] = []
+
+    for inc in includes:
+        include_path = str(inc["IncludePath"])
+        leaf = str(inc["Leaf"])
+        detected = detect_platform_include_evidence(include_path, leaf)
+        if not detected:
+            continue
+        category, message = detected
+        evidence.append(
+            {
+                "line": int(inc["Line"]),
+                "category": category,
+                "message": message,
+            }
+        )
+
+    for category, regex, message in PLATFORM_SYMBOL_RULES:
+        for match in regex.finditer(text):
+            line_no = text.count("\n", 0, match.start()) + 1
+            evidence.append(
+                {
+                    "line": line_no,
+                    "category": category,
+                    "message": message,
+                }
+            )
+
+    return evidence
+
+
+def is_platform_declared_role(role: str) -> bool:
+    return role in {"hal", "bsp"}
+
+
+def has_legacy_platform_build_path(text: str) -> bool:
+    normalized = text.replace("\\", "/")
+    return bool(
+        re.search(r"(^|[\s\"'(<:=])(?:platform|ports?)/", normalized, re.IGNORECASE)
+        or re.search(r"/(?:platform|ports?)(/|$)", normalized, re.IGNORECASE)
+        or PLATFORM_PORT_SEGMENT_RE.search(normalized)
+        or LEGACY_PLATFORM_BUILD_PATH_RE.search(normalized)
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify comsect1 code architecture rules.")
     parser.add_argument("-Root", dest="root", required=True, help="Dedicated comsect1 root directory to scan")
+    parser.add_argument("-RepoRoot", dest="repo_root", default=None, help="Repository/project root for build evidence scanning")
     parser.add_argument("-JsonOut", dest="json_out", default=None)
     args = parser.parse_args()
 
@@ -188,12 +432,19 @@ def main() -> int:
     if not root_path.is_dir():
         raise RuntimeError(f"Root folder not found: {root_path}")
 
-    unit_name = detect_unit_name(root_path)
+    repo_root = discover_repo_root(root_path, args.repo_root)
+    unit_identity = detect_unit_identity(root_path)
+    unit_name = unit_identity.get("resolved_unit")
+    if not isinstance(unit_name, str):
+        unit_name = None
 
     findings: list[dict[str, object]] = []
 
-    def err(file_path: str, line: int, rule: str, message: str) -> None:
+    def err(file_path: str | Path, line: int, rule: str, message: str) -> None:
         add_finding(findings, "error", file_path, line, rule, message)
+
+    def warn(file_path: str | Path, line: int, rule: str, message: str) -> None:
+        add_finding(findings, "warning", file_path, line, rule, message)
 
     root_boundary_issue = validate_comsect1_root_boundary(root_path)
     if root_boundary_issue:
@@ -215,6 +466,18 @@ def main() -> int:
         err(str(root_path), 1, "layout.required", f"Missing required infra bootstrap path: {infra_bootstrap_dir}")
     if not deps_root_dir.is_dir():
         err(str(root_path), 1, "layout.required", f"Missing required dependency repository path: {deps_root_dir}")
+
+    api_units = unit_identity["api_units"]
+    project_units = unit_identity["project_units"]
+    api_headers = unit_identity["api_headers"]
+    if api_dir.is_dir() and not api_headers:
+        err(api_dir, 1, "naming.api_anchor", "Missing valid API identity anchor under /api. Use app_<unit>.h or <role>_<unit>.h.")
+    if len(api_units) > 1:
+        err(api_dir, 1, "naming.unit_conflict", f"Multiple API unit identifiers detected under /api: {sorted(api_units)}")
+    if len(project_units) > 1:
+        err(project_config_dir, 1, "naming.unit_conflict", f"Multiple cfg_project_<unit>.h anchors detected: {sorted(project_units)}")
+    if api_units and project_units and api_units != project_units:
+        err(project_config_dir, 1, "naming.anchor_mismatch", f"API anchor unit(s) {sorted(api_units)} do not match cfg_project anchor unit(s) {sorted(project_units)}")
 
     # Unit-aware core file name sets — strictly one mode: qualified when unit known, legacy when not
     if unit_name:
@@ -284,6 +547,8 @@ def main() -> int:
     if not source_files:
         err(str(root_path), 1, "layout.required", f"No source files found under: {root_path}")
 
+    build_evidence = collect_build_evidence(repo_root)
+
     header_feature_owners: dict[str, set[str]] = {}
     for candidate in source_files:
         if candidate.suffix.lower() not in {".h", ".hpp"}:
@@ -332,6 +597,7 @@ def main() -> int:
 
     for file in source_files:
         full_file_path = full_path(file)
+        is_under_api = test_is_under_path(full_file_path, api_dir)
 
         is_under_bootstrap = test_is_under_path(full_file_path, infra_bootstrap_dir)
         is_under_service = test_is_under_path(full_file_path, infra_service_dir)
@@ -375,9 +641,23 @@ def main() -> int:
             err(str(file), 1, "naming.prefix", "Invalid role prefix 'inf_'. Keep role prefixes (ida_/prx_/poi_/mdw_/svc_/hal_/bsp_/stm_/cfg_/db_).")
             continue
 
+        if unit_name and requires_unit_qualification(
+            file.stem,
+            is_under_any_bootstrap=is_under_any_bootstrap,
+            is_under_any_project_features=is_under_any_project_features,
+            is_under_any_project_config=is_under_any_project_config,
+        ) and not stem_has_unit_suffix(file.stem, unit_name):
+            err(
+                str(file),
+                1,
+                "naming.unit_qualified",
+                f"Internal /infra and /project files must use the unit-qualified suffix _{unit_name}: {file.name}",
+            )
+
         if role == "unknown":
             is_top_level_architecture_managed_path = (
                 is_under_project_features or is_under_project_config or is_under_project_datastreams or is_under_bootstrap
+                or is_under_service or is_under_hal or is_under_bsp or is_under_api
             )
             if is_top_level_architecture_managed_path:
                 err(str(file), 1, "naming.prefix", f"Unknown architecture file role prefix: {file.name}")
@@ -392,15 +672,15 @@ def main() -> int:
             err(str(file), 1, "path.bootstrap", "poi_core must be located under /infra/bootstrap (root or nested architecture unit).")
         elif role == "core_praxis" and not is_under_any_bootstrap:
             err(str(file), 1, "path.bootstrap", "prx_core must be located under /infra/bootstrap (root or nested architecture unit).")
-        elif role == "service" and not is_under_any_service:
-            err(str(file), 1, "path.infra_service", "svc_* files must be located under /infra/service (root or nested architecture unit).")
-        elif role == "hal" and not is_under_any_hal:
-            err(str(file), 1, "path.infra_hal", "hal_* files must be located under /infra/platform/hal (root or nested architecture unit).")
-        elif role == "bsp" and not is_under_any_bsp:
-            err(str(file), 1, "path.infra_bsp", "bsp_* files must be located under /infra/platform/bsp (root or nested architecture unit).")
-        elif role == "app" and not test_is_under_path(full_file_path, api_dir):
+        elif role == "service" and not is_under_any_service and not is_under_api:
+            err(str(file), 1, "path.infra_service", "svc_* files must be located under /infra/service or /api.")
+        elif role == "hal" and not is_under_any_hal and not is_under_api:
+            err(str(file), 1, "path.infra_hal", "hal_* files must be located under /infra/platform/hal or /api.")
+        elif role == "bsp" and not is_under_any_bsp and not is_under_api:
+            err(str(file), 1, "path.infra_bsp", "bsp_* files must be located under /infra/platform/bsp or /api.")
+        elif role == "app" and not is_under_api:
             err(str(file), 1, "path.app", "app_* files must be located under /api.")
-        elif role == "middleware" and not is_under_deps_middleware and not is_under_deps_extern and not test_is_under_path(full_file_path, api_dir):
+        elif role == "middleware" and not is_under_deps_middleware and not is_under_deps_extern and not is_under_api:
             err(str(file), 1, "path.deps_middleware", "mdw_* files must be located under /deps/middleware, /deps/extern, or /api.")
         elif role == "idea" and not is_under_any_project_features:
             err(str(file), 1, "path.project_feature", "ida_* feature files must be located under /project/features (root or nested architecture unit).")
@@ -431,10 +711,36 @@ def main() -> int:
             err(str(file), 1, "path.datastream", f"stm_* files must be located under /project/datastreams/, /deps/middleware/, or /deps/extern/: {file.name}")
 
         try:
-            includes = get_includes(file)
+            text = file.read_text(encoding="utf-8")
         except Exception as exc:
             err(str(file), 1, "read", f"Failed to read file: {exc}")
             continue
+
+        includes = get_includes_from_text(text)
+        platform_evidence = collect_platform_evidence(includes, text)
+        platform_categories = {str(item["category"]) for item in platform_evidence}
+        if "board" in platform_categories and "peripheral" in platform_categories:
+            mixed_line = min(int(item["line"]) for item in platform_evidence)
+            warn(
+                str(file),
+                mixed_line,
+                "red-flag-hal-bsp-mixed",
+                "File mixes peripheral abstraction and board wiring. Split HAL and BSP responsibilities.",
+            )
+
+        if platform_evidence and not is_platform_declared_role(role):
+            seen_platform_findings: set[tuple[int, str]] = set()
+            for item in sorted(platform_evidence, key=lambda entry: (int(entry["line"]), str(entry["message"]))):
+                key = (int(item["line"]), str(item["message"]))
+                if key in seen_platform_findings:
+                    continue
+                seen_platform_findings.add(key)
+                err(
+                    str(file),
+                    int(item["line"]),
+                    "platform.misplaced",
+                    f"Non-platform file owns raw platform coupling ({item['message']}). Extract this responsibility to /infra/platform/hal or /infra/platform/bsp.",
+                )
 
         for inc in includes:
             line_no = int(inc["Line"])
@@ -537,6 +843,35 @@ def main() -> int:
                 if is_forbidden_platform_include:
                     err(str(file), line_no, "platform.include", f"Platform must not include upper-layer/resource/module headers: {include_path}")
 
+    has_platform_implementation = any(
+        test_is_under_path(full_path(candidate), infra_hal_dir)
+        or test_is_under_path(full_path(candidate), infra_bsp_dir)
+        for candidate in source_files
+    )
+
+    for item in build_evidence:
+        build_file = Path(str(item["file"]))
+        line_no = int(item["line"])
+        message = str(item["message"])
+        text = str(item["text"])
+
+        if has_legacy_platform_build_path(text):
+            err(
+                build_file,
+                line_no,
+                "platform.misplaced.build",
+                f"Legacy platform/port build reference detected ({text}). Align build wiring to /infra/platform/hal or /infra/platform/bsp.",
+            )
+            continue
+
+        if not has_platform_implementation:
+            err(
+                build_file,
+                line_no,
+                "platform.misplaced.build",
+                f"Repo-root build wiring shows platform responsibility ({message}) but no /infra/platform/hal or /infra/platform/bsp implementation was found under {root_path}.",
+            )
+
     # Pre-group .c files by architectural role for shared helpers
     c_files = [f for f in source_files if f.suffix.lower() == ".c"]
     ida_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "idea"]
@@ -577,8 +912,10 @@ def main() -> int:
     if args.json_out:
         report = {
             "generatedAtUtc": dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z"),
+            "repoRoot": str(repo_root),
             "rootPath": str(root_path),
             "errorsCount": len(errors),
+            "warningsCount": len(warnings),
             "findings": findings,
         }
         write_json_no_bom(Path(args.json_out), report)

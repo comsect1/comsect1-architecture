@@ -105,11 +105,45 @@ Core execution (`poi_core` by default) must not include HAL/BSP directly when pl
 
 ---
 
-## 10.8 OOP-Specific Anti-patterns
+## 10.8 Platform Evidence Outside Platform
+
+**Violation:** semantic placement.
+
+Non-platform files directly include vendor/device/BSP/CMSIS headers or use raw
+platform primitives.
+
+Examples:
+- `poi_sensor.c` including `sam.h` or `cmsis_device.h`
+- `svc_crc.c` using `NVIC_` or `PORT_REGS`
+- `cfg_board.h` owning board timer and clock wiring logic
+
+Correct direction: extract peripheral abstraction into `hal_` and board wiring
+into `bsp_`.
+
+---
+
+## 10.9 HAL/BSP Mixed Responsibility
+
+**Violation:** platform role collapse.
+
+One file simultaneously owns peripheral abstraction and board-specific wiring.
+
+Examples:
+- direct MCU register access in the same file as board clock, board pin, or
+  board timer setup
+- one file both wraps SERCOM/UART access and decides which board routing is used
+
+Correct direction:
+- `hal_`: peripheral-facing abstraction
+- `bsp_`: board-facing composition and wiring
+
+---
+
+## 10.10 OOP-Specific Anti-patterns
 
 The following anti-patterns apply when comsect1 is used with object-oriented languages. For the full treatment, see **Appendix B (A2)**.
 
-### 10.8.1 Reverse Dependency via Inheritance
+### 10.10.1 Reverse Dependency via Inheritance
 
 **Violation:** dependency direction (Section 2.7.3).
 
@@ -117,7 +151,7 @@ Praxis or Poiesis class inherits from Idea class, creating an implicit upward de
 
 Correct: use composition. Idea calls Praxis/Poiesis; it does not extend them.
 
-### 10.8.2 Idea Holding Mutable State
+### 10.10.2 Idea Holding Mutable State
 
 **Violation:** Idea purity.
 
@@ -125,7 +159,7 @@ Idea class declares mutable instance fields. Stateful Idea introduces temporal c
 
 Correct: Idea methods are static/shared. State belongs in `cfg_`/`db_`/`stm_` or Praxis/Poiesis.
 
-### 10.8.3 God-Class (Layer Collapse)
+### 10.10.3 God-Class (Layer Collapse)
 
 **Violation:** layer role clarity (Section 10.4).
 

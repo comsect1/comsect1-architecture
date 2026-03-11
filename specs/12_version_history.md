@@ -4,6 +4,32 @@
 
 ---
 
+## v1.0.2
+
+### Normative additions
+
+- **Official unit identity setup**: Section 8.6 now explicitly defines the
+  project naming procedure around two anchors: `/api/<role>_<unit>.h` and
+  `/project/config/cfg_project_<unit>.h`.
+- **Semantic platform misplaced classification**: raw platform evidence outside
+  `/infra/platform/` is now defined as misplaced responsibility, not a harmless
+  folder mismatch.
+- **Contextual absence rule**: missing `hal_`/`bsp_` is no longer treated as
+  true absence when platform-coupled code already exists elsewhere in the tree.
+- **HAL/BSP mixed responsibility advisory**: files mixing peripheral
+  abstraction and board wiring are now explicitly reviewable as a separate
+  advisory concern.
+
+### Guides and tooling
+
+- Analysis, review, setup, migration, and verification guides now reference
+  the unit identity anchors and semantic platform misplaced rules.
+- The C code gate and AIAD runner are expected to scan repo-root build files
+  for platform evidence and to report `platform.misplaced` /
+  `platform.misplaced.build` findings.
+
+---
+
 ## v1.0.0
 
 ### Architecture

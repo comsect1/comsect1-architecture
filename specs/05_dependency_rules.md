@@ -135,13 +135,13 @@ uint16_t temp = *Stm_SensorData_Stream(NULL);
 
 | Category | Location | Who Can Access |
 |----------|----------|----------------|
-| **Core Contract header** | `/infra/bootstrap/cfg_core.h` | ALL layers |
+| **Core Contract header** | `/infra/bootstrap/cfg_core_<unit>.h` | ALL layers |
 | **Project Config/DB** | `/project/config/` | Praxis/Poiesis only |
 | **Feature Config/DB** | `/project/features/<f>/` | Praxis/Poiesis only |
 | **Datastream (`stm_`)** | `/project/datastreams/` or dependency-provided headers | Praxis/Poiesis only |
 
-`cfg_core.h` contains contract vocabulary.
-`cfg_project.h` and feature resources contain implementation details.
+`cfg_core_<unit>.h` contains contract vocabulary.
+`cfg_project_<unit>.h` and feature resources contain implementation details.
 
 ### 5.2.4 Orthogonal execution planes
 
@@ -155,6 +155,22 @@ Rules:
 - Praxis/Poiesis may call capability plane APIs.
 - Capability plane components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
 - Only prefixes listed in Section 8.5 are valid; folder grouping does not change prefix semantics.
+
+### 5.2.5 Misplaced Platform Coupling
+
+Dependency direction is semantic, not merely lexical.
+
+Rules:
+- Feature `prx_`/`poi_` consume platform through `hal_` APIs, not by directly
+  including vendor/device/BSP/CMSIS headers.
+- `svc_`, `mdw_`, `cfg_`, `db_`, `stm_`, core files, and arbitrary legacy
+  folders must not own raw platform coupling.
+- If a non-platform file directly includes vendor/device/BSP/CMSIS headers or
+  directly uses device-register, interrupt, or board-wiring symbols, that file
+  is platform misplaced even if its current prefix or folder is otherwise valid.
+- Absence checks are contextual: when platform-coupled code exists elsewhere,
+  missing `hal_`/`bsp_` structure is not a true absence. It is misplaced
+  platform responsibility awaiting extraction.
 
 ---
 
