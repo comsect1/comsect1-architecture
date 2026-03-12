@@ -48,6 +48,7 @@ each violation. Do not read unrelated sections.
 | `include.*`, `ida.include`, `prx.include`, `poi.include`, `*_core.include` | `specs/05_dependency_rules.md` |
 | `path.*` | `specs/07_folder_structure.md` + `specs/08_naming_conventions.md` |
 | `layer-balance` | `specs/04_layer_roles.md` |
+| `service.*` | `specs/04_layer_roles.md` + `specs/02_overview.md` |
 | `red-flag-*` | `specs/11_checklist.md` (advisory, proceed to Phase 2) |
 | `naming.*` | `specs/08_naming_conventions.md` |
 | `module.include`, `module.resource`, `platform.*` | `specs/04_layer_roles.md` + `specs/05_dependency_rules.md` + `specs/07_folder_structure.md` |

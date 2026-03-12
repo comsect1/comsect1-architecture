@@ -20,6 +20,7 @@ from comsect1_gate_helpers import (
     verify_folder_structure,
     verify_layer_balance,
     verify_red_flags_common,
+    verify_service_ownership_common,
 )
 
 SOURCE_EXTENSIONS = {".c", ".h", ".cpp", ".hpp"}
@@ -879,6 +880,13 @@ def main() -> int:
     ida_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "idea"]
     prx_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "praxis"]
     poi_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "poiesis"]
+    service_files = [f for f in c_files if get_role_info(f.name, unit_name)[0] == "service"]
+    internal_impl_files = [
+        f for f in c_files
+        if test_is_under_path(full_path(f), infra_bootstrap_dir)
+        or test_is_under_path(full_path(f), infra_service_dir)
+        or test_is_under_path(full_path(f), project_features_dir)
+    ]
 
     # Stage: Layer Balance Invariant (v1.0.1, error severity)
     verify_layer_balance(
@@ -891,6 +899,7 @@ def main() -> int:
         ida_files, prx_files, poi_files, findings,
         count_lines=count_code_lines,
     )
+    verify_service_ownership_common(service_files, internal_impl_files, findings)
 
     errors = [f for f in findings if f["severity"] == "error"]
     warnings = [f for f in findings if f["severity"] == "warning"]

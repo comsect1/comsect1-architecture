@@ -34,6 +34,15 @@ DOMAIN_CONDITIONAL_RE = re.compile(
 # Excludes nested braces (complex bodies won't match).
 _POI_WRAPPER_BODY_RE = re.compile(r"\bPoi_\w+\s*\([^()]*\)\s*\{([^{}]*)\}", re.DOTALL)
 _PRX_SINGLE_CALL_RE = re.compile(r"^\s*(?:return\s+)?Prx_\w+\s*\([^;]*\)\s*;\s*$", re.DOTALL)
+_SVC_WRAPPER_BODY_RE = re.compile(r"\bSvc_\w+\s*\([^(){};]*\)\s*\{([^{}]*)\}", re.DOTALL)
+_SVC_SINGLE_CALL_RE = re.compile(r"^\s*(?:return\s+)?(?P<callee>[A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*\)\s*;\s*$", re.DOTALL)
+_SVC_NON_OWNER_CALL_RE = re.compile(r"^(?:Lin[A-Z]\w*|Prx_\w+|Poi_\w+|Ida_\w+|ld_\w+|l_ifc_\w+)$")
+_SVC_BACKEND_CALL_RE = re.compile(r"^Svc(?:_|[A-Z])[A-Za-z0-9_]*_Backend[A-Za-z0-9_]*$")
+_SVC_REGISTRY_NAME_RE = re.compile(r"\b(?:Register|RunTask|GetTask|GetUserPort|GetOps|SetOps)\b")
+_PUBLIC_API_CALL_RE = re.compile(r"\b(?P<name>(?:l_ifc|ld)_[A-Za-z0-9_]+)\s*\(")
+_PUBLIC_API_DEF_RE = re.compile(
+    r"^\s*(?:[A-Za-z_][A-Za-z0-9_\s\*]*\s+)?(?:(?:l_ifc|ld)_[A-Za-z0-9_]+)\s*\([^;]*\)\s*(?:\{|;)\s*$"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +197,11 @@ def count_code_lines(
     return count
 
 
+def line_number_from_offset(text: str, offset: int) -> int:
+    """Return the 1-based line number for *offset* within *text*."""
+    return text.count("\n", 0, offset) + 1
+
+
 # ---------------------------------------------------------------------------
 # Layer Balance Invariant (v1.0.1, error severity)
 # ---------------------------------------------------------------------------
@@ -340,3 +354,112 @@ def verify_red_flags_common(
                 )
         except OSError:
             pass
+
+
+def verify_service_ownership_common(
+    service_files: list[Path],
+    internal_impl_files: list[Path],
+    findings: list[dict[str, object]],
+) -> None:
+    """Detect fake svc_ facades and internal bounce through public LIN APIs."""
+    for f in service_files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+
+        thin_delegate_hits: list[tuple[str, str]] = []
+        public_count = 0
+        registry_like_count = 0
+
+        for match in _SVC_WRAPPER_BODY_RE.finditer(text):
+            public_count += 1
+            name_match = re.search(r"\b(Svc_\w+)\s*\(", match.group(0))
+            func_name = name_match.group(1) if name_match else "Svc_<unknown>"
+            line_no = line_number_from_offset(text, match.start())
+            if _SVC_REGISTRY_NAME_RE.search(func_name):
+                registry_like_count += 1
+
+            call_match = _SVC_SINGLE_CALL_RE.match(match.group(1))
+            if not call_match:
+                continue
+
+            callee = call_match.group("callee")
+            if _SVC_BACKEND_CALL_RE.match(callee):
+                thin_delegate_hits.append((func_name, callee))
+                add_finding(
+                    findings,
+                    "error",
+                    f,
+                    line_no,
+                    "service.public-backend-bounce",
+                    f"{func_name} is a one-hop public wrapper around exported backend symbol '{callee}'. "
+                    "Backend file splits are allowed, but public Svc_ APIs must not add a second membrane over backend-exported functions.",
+                )
+                continue
+
+            if not _SVC_NON_OWNER_CALL_RE.match(callee):
+                continue
+
+            thin_delegate_hits.append((func_name, callee))
+            add_finding(
+                findings,
+                "error",
+                f,
+                line_no,
+                "service.public-nonservice-delegate",
+                f"{func_name} is a thin service facade that delegates directly to non-service owner '{callee}'. "
+                "Public Svc_ APIs must own reusable computation or delegate only to service-private helpers.",
+            )
+
+        if public_count > 0 and len(thin_delegate_hits) == public_count:
+            add_finding(
+                findings,
+                "error",
+                f,
+                0,
+                "service.file-facade",
+                "All public Svc_ functions in this file are thin pass-through delegates or backend bounces. "
+                "This file is a facade membrane, not an owned service capability.",
+            )
+
+        if (
+            public_count >= 2
+            and registry_like_count >= max(2, (public_count + 1) // 2)
+            and not DOMAIN_CONDITIONAL_RE.findall(text)
+        ):
+            add_finding(
+                findings,
+                "warning",
+                f,
+                0,
+                "service.misclassified-registry",
+                "svc_ appears to be registry/dispatch code with little or no transform logic. "
+                "Review whether this belongs in mdw_ or a core execution wrapper instead.",
+            )
+
+    for f in internal_impl_files:
+        try:
+            lines = f.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+
+        for line_no, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("//"):
+                continue
+            match = _PUBLIC_API_CALL_RE.search(line)
+            if not match:
+                continue
+            if _PUBLIC_API_DEF_RE.match(stripped):
+                continue
+
+            add_finding(
+                findings,
+                "error",
+                f,
+                line_no,
+                "service.internal-public-bounce",
+                f"Internal implementation calls public LIN API '{match.group('name')}'. "
+                "infra/service, infra/bootstrap, and project/features code must not bounce through l_ifc_* or ld_*.",
+            )
