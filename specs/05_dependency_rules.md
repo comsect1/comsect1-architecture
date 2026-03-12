@@ -154,6 +154,7 @@ Rules:
 - Feature-to-feature runtime interaction uses data plane (`stm_`) only.
 - Praxis/Poiesis may call capability plane APIs.
 - Capability plane components must not include feature-layer headers (`ida_`/`prx_`/`poi_`).
+  - **Exception**: An `/api/` entry point (`mdw_`) may include its own unit's `ida_core_` header to implement the bootstrap entry point.
 - Only prefixes listed in Section 8.5 are valid; folder grouping does not change prefix semantics.
 
 ### 5.2.5 Misplaced Platform Coupling

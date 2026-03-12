@@ -154,6 +154,7 @@ Rules:
 - Inter-feature communication is datastream only (`stm_`).
 - `stm_` is the data plane; `mdw_`/`svc_`/`hal_`/`bsp_` form the capability plane.
 - Capability providers must not reverse-depend on feature `ida_`/`prx_`/`poi_`.
+  - **Exception**: The `/api/` entry point (`mdw_`) may include its own unit's `ida_core_` to implement the bootstrap entry point.
 
 ### 2.7.4 Resource prefixes (cfg_ / db_ / stm_) and core contract header
 

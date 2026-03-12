@@ -829,7 +829,9 @@ def main() -> int:
 
             if role in {"service", "middleware"}:
                 if re.match(r"^(ida_|prx_|poi_)", leaf):
-                    err(str(file), line_no, "module.include", f"Modules must not include upper-layer headers: {include_path}")
+                    is_api_entry_bootstrap = is_under_api and re.match(r"^ida_core_", leaf)
+                    if not is_api_entry_bootstrap:
+                        err(str(file), line_no, "module.include", f"Modules must not include upper-layer headers: {include_path}")
                 if leaf in project_resource_header_names and not is_core_cfg:
                     err(str(file), line_no, "module.resource", f"Modules must not include resources (cfg_/db_/stm_) directly: {include_path}")
 
