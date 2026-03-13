@@ -76,6 +76,10 @@ PLATFORM_SYMBOL_RULES: tuple[tuple[str, re.Pattern[str], str], ...] = (
 # C-specific code line counter: skip preprocessor directives
 count_code_lines = partial(_count_code_lines, line_comment_prefixes=("//",), skip_preprocessor=True)
 
+# Function-level naming checks for service layer
+SVC_EXPORT_FUNC_RE = re.compile(r"^(?!static\b)\w[\w\s\*]*?\b(\w+)\s*\(")
+SVC_HEADER_FUNC_DECL_RE = re.compile(r"^(?!static\b)\w[\w\s\*]*?\b(\w+)\s*\(.*\)\s*;")
+
 
 def full_path(path_like: str | Path) -> str:
     return os.path.abspath(os.fspath(path_like))
@@ -845,6 +849,48 @@ def main() -> int:
                 )
                 if is_forbidden_platform_include:
                     err(str(file), line_no, "platform.include", f"Platform must not include upper-layer/resource/module headers: {include_path}")
+
+        # --- Rule: naming.service_export ---
+        # Non-static function definitions in svc_ .c files must use Svc_ prefix
+        if role == "service" and file.suffix.lower() == ".c":
+            for line_idx, raw_line in enumerate(text.splitlines(), start=1):
+                if raw_line[:1].isspace() or not raw_line.strip():
+                    continue
+                if raw_line.lstrip().startswith(("#", "/", "*", "typedef")):
+                    continue
+                m = SVC_EXPORT_FUNC_RE.match(raw_line)
+                if not m:
+                    continue
+                func_name = m.group(1)
+                if func_name.startswith("Svc_"):
+                    continue
+                err(str(file), line_idx, "naming.service_export",
+                    f"Non-standard export '{func_name}'. Service-layer exports must use Svc_<Module>_ prefix.")
+
+        # --- Rule: naming.service_header_export (advisory) ---
+        # Function declarations in svc_ .h files should use Svc_ prefix
+        if role == "service" and file.suffix.lower() == ".h":
+            for line_idx, raw_line in enumerate(text.splitlines(), start=1):
+                if raw_line[:1].isspace() or not raw_line.strip():
+                    continue
+                if raw_line.lstrip().startswith(("#", "/", "*", "typedef")):
+                    continue
+                m = SVC_HEADER_FUNC_DECL_RE.match(raw_line)
+                if not m:
+                    continue
+                func_name = m.group(1)
+                if func_name.startswith("Svc_"):
+                    continue
+                warn(str(file), line_idx, "naming.service_header_export",
+                    f"Non-standard declaration '{func_name}'. Service header exports should use Svc_<Module>_ prefix.")
+
+        # --- Rule: structure.dead_shell ---
+        # Service .c files with fewer than 3 code lines are dead shells
+        if is_under_any_service and file.suffix.lower() == ".c":
+            code_lines = count_code_lines(file)
+            if code_lines < 3:
+                err(str(file), 1, "structure.dead_shell",
+                    f"Service file contains only {code_lines} code line(s). Remove empty shell files.")
 
     has_platform_implementation = any(
         test_is_under_path(full_path(candidate), infra_hal_dir)
