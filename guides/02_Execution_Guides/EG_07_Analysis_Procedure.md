@@ -125,6 +125,18 @@ Identify code reused across features:
 - Shared domain computation — `svc_`
 - Feature-internal logic — stays in the feature
 
+For each `svc_` module, verify role authenticity:
+
+- Does it wrap an infrastructure mechanism (`mdw_`, `hal_`)?
+- Does it provide reusable computation?
+- Or is it merely a cross-feature data/dispatch channel?
+
+A `svc_` module that stores and retrieves runtime data (including function
+pointer tables) for consumption by another feature is a datastream (`stm_`)
+pattern, not a service pattern. The gate flags this as
+`service.infra-orphan`; Phase 2 analysis confirms or dismisses such flags
+using semantic judgment.
+
 ### Step 5: Dependency analysis (Phase 2)
 
 Map current dependencies and flag every violation with the specific spec

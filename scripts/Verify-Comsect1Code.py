@@ -945,7 +945,10 @@ def main() -> int:
         ida_files, prx_files, poi_files, findings,
         count_lines=count_code_lines,
     )
-    verify_service_ownership_common(service_files, internal_impl_files, findings)
+    verify_service_ownership_common(
+        service_files, internal_impl_files, findings,
+        count_lines=count_code_lines,
+    )
 
     errors = [f for f in findings if f["severity"] == "error"]
     warnings = [f for f in findings if f["severity"] == "warning"]

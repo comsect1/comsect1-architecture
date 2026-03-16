@@ -16,12 +16,14 @@ Error handling is architectural, not optional implementation detail.
 
 ## 6.1 Standard Return Type
 
-Use a common result enum in `cfg_core.h`:
+Use a common result enum in `cfg_core.h`. The canonical definition is
+provided by the standard package `cfg_core_std.h` (Section 14.2):
 
 ```c
 typedef enum {
     RESULT_OK = 0,
     RESULT_FAIL,
+    RESULT_BUSY,
     RESULT_UNSUPPORTED,
     RESULT_UNDEFINED,
 } Result_t;

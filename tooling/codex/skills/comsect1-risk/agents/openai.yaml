@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Risk"
+  short_description: "Scan for comsect1 anti-patterns and exception hazards"
+  default_prompt: "Use $comsect1-risk to scan for anti-patterns, unreasonable logic placement, and recurring exception hazards."

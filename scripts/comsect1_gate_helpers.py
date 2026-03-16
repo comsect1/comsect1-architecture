@@ -19,6 +19,7 @@ from typing import Callable
 MIN_IDA_LINES = 10
 MIN_PRX_LINES_FOR_FAT_CHECK = 5
 MIN_POI_WRAPPER_COUNT = 2
+SVC_INFRA_ORPHAN_MAX_LINES = 30
 
 DOMAIN_CONDITIONAL_RE = re.compile(
     r"\b(?:if|switch|case)\b.*\b(?:"
@@ -39,6 +40,7 @@ _SVC_SINGLE_CALL_RE = re.compile(r"^\s*(?:return\s+)?(?P<callee>[A-Za-z_][A-Za-z
 _SVC_NON_OWNER_CALL_RE = re.compile(r"^(?:Lin[A-Z]\w*|Prx_\w+|Poi_\w+|Ida_\w+|ld_\w+|l_ifc_\w+)$")
 _SVC_BACKEND_CALL_RE = re.compile(r"^Svc(?:_|[A-Z])[A-Za-z0-9_]*_Backend[A-Za-z0-9_]*$")
 _SVC_REGISTRY_NAME_RE = re.compile(r"\b(?:Register|RunTask|GetTask|GetUserPort|GetOps|SetOps)\b")
+_SVC_INFRA_INCLUDE_RE = re.compile(r"#include\s+[<\"](?:mdw_|hal_)\w+")
 _PUBLIC_API_CALL_RE = re.compile(r"\b(?P<name>(?:l_ifc|ld)_[A-Za-z0-9_]+)\s*\(")
 _PUBLIC_API_DEF_RE = re.compile(
     r"^\s*(?:[A-Za-z_][A-Za-z0-9_\s\*]*\s+)?(?:(?:l_ifc|ld)_[A-Za-z0-9_]+)\s*\([^;]*\)\s*(?:\{|;)\s*$"
@@ -360,8 +362,10 @@ def verify_service_ownership_common(
     service_files: list[Path],
     internal_impl_files: list[Path],
     findings: list[dict[str, object]],
+    *,
+    count_lines: Callable[[Path], int] | None = None,
 ) -> None:
-    """Detect fake svc_ facades and internal bounce through public LIN APIs."""
+    """Detect fake svc_ facades, infra-orphan services, and internal bounce."""
     for f in service_files:
         try:
             text = f.read_text(encoding="utf-8", errors="replace")
@@ -436,6 +440,48 @@ def verify_service_ownership_common(
                 "service.misclassified-registry",
                 "svc_ appears to be registry/dispatch code with little or no transform logic. "
                 "Review whether this belongs in mdw_ or a core execution wrapper instead.",
+            )
+
+    # Infra-Orphan check: svc_ that wraps no infrastructure mechanism
+    if count_lines is not None:
+        for f in service_files:
+            if f.suffix.lower() != ".c":
+                continue
+            try:
+                c_text = f.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+
+            if "SVC_MECHANISM_JUSTIFICATION" in c_text:
+                continue
+
+            h_file = f.with_suffix(".h")
+            h_text = ""
+            if h_file.exists():
+                try:
+                    h_text = h_file.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    pass
+                if "SVC_MECHANISM_JUSTIFICATION" in h_text:
+                    continue
+
+            if _SVC_INFRA_INCLUDE_RE.search(c_text) or _SVC_INFRA_INCLUDE_RE.search(h_text):
+                continue
+
+            code_line_count = count_lines(f)
+            if code_line_count > SVC_INFRA_ORPHAN_MAX_LINES:
+                continue
+
+            add_finding(
+                findings,
+                "warning",
+                f,
+                0,
+                "service.infra-orphan",
+                f"Service module has no mdw_/hal_ dependency and only {code_line_count} "
+                f"code line(s) (threshold: {SVC_INFRA_ORPHAN_MAX_LINES}). "
+                "Verify it wraps a genuine mechanism. If it only stores/retrieves "
+                "data for cross-feature dispatch, it may belong in stm_ (datastream).",
             )
 
     for f in internal_impl_files:

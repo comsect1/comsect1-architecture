@@ -67,7 +67,46 @@ Use the 3-question discriminator (Section 2.3).
 
 ---
 
-## 10.5 Cross-feature Direct Include
+## 10.5 Anemic Idea (Idea as Thin Wrapper)
+
+**Violation:** Idea is the contract subject (Section 1.6.1).
+
+**Symptom:** `ida_` file consists primarily of:
+- one-line forwarding calls to `prx_`/`poi_`
+- a `GetInterface()` function with minimal or no domain logic
+- init/main functions that immediately delegate without decision
+
+Meanwhile, `prx_` or `poi_` files contain state machines, threshold
+evaluations, policy decisions, or orchestration sequences.
+
+```c
+/* ida_feature.c -- WRONG: Anemic Idea */
+void Ida_Feature_Main(void)
+{
+    Prx_Feature_DoEverything();  /* all logic pushed to prx_ */
+}
+```
+
+**Root cause:** Misreading "WHAT/WHEN" as "which features exist and when
+to boot them," or interpreting "pure intent" as "minimal code."
+
+**Impact:**
+- requirement changes modify `prx_`/`poi_` instead of `ida_`
+- domain decisions become invisible, buried in implementation layers
+- the feature loses its architectural contract surface
+
+**Fix:** Apply the 3-Question Discriminator. Any logic that answers Q1
+with "No" (no external dependency required) must move to `ida_`. This
+includes state machines, policy evaluations, guard conditions, domain
+computations, and orchestration sequences.
+
+**Diagnostic:** If `ida_` is smaller than the corresponding `prx_` or
+`poi_`, investigate. In a well-structured feature, `ida_` is typically
+the largest layer.
+
+---
+
+## 10.6 Cross-feature Direct Include
 
 **Violation:** feature isolation.
 
@@ -84,7 +123,7 @@ Correct pattern:
 
 ---
 
-## 10.6 Resource Files Including Layer Headers
+## 10.7 Resource Files Including Layer Headers
 
 **Violation:** reverse dependency from data to logic.
 
@@ -97,7 +136,7 @@ Resources must remain pure data.
 
 ---
 
-## 10.7 Core Execution Layer Including HAL/BSP
+## 10.8 Core Execution Layer Including HAL/BSP
 
 **Violation:** core purity.
 
@@ -105,7 +144,7 @@ Core execution (`poi_core` by default) must not include HAL/BSP directly when pl
 
 ---
 
-## 10.8 Platform Evidence Outside Platform
+## 10.9 Platform Evidence Outside Platform
 
 **Violation:** semantic placement.
 
@@ -122,7 +161,7 @@ into `bsp_`.
 
 ---
 
-## 10.9 HAL/BSP Mixed Responsibility
+## 10.10 HAL/BSP Mixed Responsibility
 
 **Violation:** platform role collapse.
 
@@ -139,11 +178,11 @@ Correct direction:
 
 ---
 
-## 10.10 OOP-Specific Anti-patterns
+## 10.11 OOP-Specific Anti-patterns
 
 The following anti-patterns apply when comsect1 is used with object-oriented languages. For the full treatment, see **Appendix B (A2)**.
 
-### 10.10.1 Reverse Dependency via Inheritance
+### 10.11.1 Reverse Dependency via Inheritance
 
 **Violation:** dependency direction (Section 2.7.3).
 
@@ -151,7 +190,7 @@ Praxis or Poiesis class inherits from Idea class, creating an implicit upward de
 
 Correct: use composition. Idea calls Praxis/Poiesis; it does not extend them.
 
-### 10.10.2 Idea Holding Mutable State
+### 10.11.2 Idea Holding Mutable State
 
 **Violation:** Idea purity.
 
@@ -159,7 +198,7 @@ Idea class declares mutable instance fields. Stateful Idea introduces temporal c
 
 Correct: Idea methods are static/shared. State belongs in `cfg_`/`db_`/`stm_` or Praxis/Poiesis.
 
-### 10.10.3 God-Class (Layer Collapse)
+### 10.11.3 God-Class (Layer Collapse)
 
 **Violation:** layer role clarity (Section 10.4).
 

@@ -72,10 +72,11 @@ Priority order:
 5. `specs/07_folder_structure.md`
 6. `specs/08_naming_conventions.md`
 7. `specs/11_checklist.md`
-8. `specs/A2_oop_adaptation.md` for OOP projects
-9. `guides/00_Process_Overview.md`
-10. Task-specific guides under `guides/01_*`, `guides/02_*`, `guides/03_*`
-11. Gate scripts under `scripts/`
+8. `specs/14_standard_packages.md`
+9. `specs/A2_oop_adaptation.md` for OOP projects
+10. `guides/00_Process_Overview.md`
+11. Task-specific guides under `guides/01_*`, `guides/02_*`, `guides/03_*`
+12. Gate scripts under `scripts/`
 
 If something is defined in `specs/`, do not override it with summaries, memory,
 or AI-specific adapter files.
@@ -88,7 +89,7 @@ or AI-specific adapter files.
 
 | Layer | Prefix | Responsibility |
 |-------|--------|----------------|
-| Idea | `ida_` | WHAT/WHEN intent and business decisions |
+| Idea | `ida_` | WHAT/WHEN/WHICH intent and business decisions |
 | Praxis | `prx_` | Externally-coupled domain interpretation |
 | Poiesis | `poi_` | Mechanical production, wrapping, bridging |
 
@@ -253,6 +254,41 @@ MUST reference canonical specs and guides rather than embed their content.
 **Canonical content** (must reference, never embed):
 - Architecture rules, check lists, procedures, output formats
 - Any rule that would also apply to a different AI tool
+
+### 9.1 Generic Sub-Agent Pack Taxonomy
+
+When a provider package exposes multiple AI surfaces, those surfaces MUST map
+to the same canonical pack taxonomy defined in:
+`guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+
+Required core packs:
+- Director Pack
+- Structure & Migration Pack
+- Layer & Dependency Pack
+- Risk & Exception Pack
+- Verification & Governance Pack
+
+Optional pack:
+- Execution Pack
+
+Provider packages may express these packs as skills, agents, reviewers, or
+equivalent provider-native surfaces, but the pack meaning MUST remain aligned
+with the canonical guide and the provider surface MUST remain thin.
+
+Provider packages SHOULD also expose one primary end-to-end refactoring
+surface for normal use. That surface is a user-facing command layer above the
+pack taxonomy, not a replacement for it.
+
+When the provider supports multiple visible commands, keep the user-facing
+surface minimal. Prefer exposing only:
+
+- `refactor` for end-to-end work
+- `analyze` for analysis-only work
+- `review` for findings-only review
+
+Pack-specific surfaces may still exist as provider-internal implementation
+detail, but they should not be multiplied as user-facing commands unless the
+provider has a concrete operational reason.
 
 ### Rationale
 

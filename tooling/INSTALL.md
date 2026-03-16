@@ -40,7 +40,8 @@ python scripts/Verify-ToolingConsistency.py
 The managed surface includes:
 
 - root adapters such as `AGENTS.md` and `CLAUDE.md`
-- tool-specific skills, reviewers, and rules files
+- minimal user-facing surfaces such as `refactor`, `analyze`, and `review`
+- provider-internal pack-aligned files that preserve the canonical taxonomy
 - install/bootstrap wrapper scripts under `tooling/`
 - tool-specific package docs under `tooling/<tool>/INSTALL.md`
 - generated blocks inside this shared packaging guide
@@ -51,8 +52,8 @@ The managed surface includes:
 <!-- BEGIN GENERATED: tooling-install.tool-matrix -->
 | Tool | Package doc | Installs | Project-local adapter |
 |------|-------------|----------|-----------------------|
-| Claude Code | `tooling/claude-code/INSTALL.md` | global rule + reviewer + analyze skill | optional thin `CLAUDE.md` |
-| Codex | `tooling/codex/INSTALL.md` | analyze skill + review skill | required thin `AGENTS.md` via bootstrap |
+| Claude Code | `tooling/claude-code/INSTALL.md` | user-facing refactor/analyze/review surfaces plus internal pack-aligned files | optional thin `CLAUDE.md` |
+| Codex | `tooling/codex/INSTALL.md` | user-facing refactor/analyze/review skills | required thin `AGENTS.md` via bootstrap |
 <!-- END GENERATED: tooling-install.tool-matrix -->
 
 ## Update Policy

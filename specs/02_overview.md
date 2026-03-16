@@ -33,7 +33,7 @@ Each feature in comsect1 consists of three **Architecture Layers**:
 
 | Layer | Prefix | Role | Question Answered |
 |-------|--------|------|-------------------|
-| **Idea** | `ida_` | Pure intent and domain decisions | "WHAT does the system do, and WHEN?" |
+| **Idea** | `ida_` | Domain decisions, policy, orchestration, and domain computation | "WHAT does the system do, WHEN, and under WHICH conditions?" |
 | **Praxis** | `prx_` | Domain interpretation coupled to external types | "WHAT-in-HOW must be interpreted?" |
 | **Poiesis** | `poi_` | Faithful mechanical production / wrapping | "HOW is it executed?" |
 
@@ -100,6 +100,7 @@ The sections that follow define:
 | 9-11. Examples and Verification | Code examples, anti-patterns, checklist |
 | 12. Version History | Change log and superseded ideas |
 | 13. Middleware Guideline | Middleware integration and fractal pattern |
+| 14. Standard Packages | Foundation and reference implementation packages |
 | Appendix A | Exception handling template |
 | Appendix B | OOP adaptation (A2) |
 
@@ -128,7 +129,7 @@ comsect1 separates five axes. Mixing them creates ambiguity.
 
 The 3-layer concept refers to architectural separation inside a unit of functionality (typically a feature):
 
-- **Idea Layer** (`ida_`): intent and domain decisions (WHAT/WHEN)
+- **Idea Layer** (`ida_`): domain decisions, policy, orchestration, and domain computation (WHAT/WHEN/WHICH)
 - **Praxis Layer** (`prx_`): externally coupled interpretation that still carries domain meaning
 - **Poiesis Layer** (`poi_`): mechanical production, wrapping, and bridging (HOW execution)
 
@@ -248,6 +249,20 @@ comsect1 rules are language-agnostic (Section 1.2). When applied to object-orien
 - File-scope `static` variables → instance state belongs in Praxis/Poiesis; Idea remains stateless
 
 For the complete OOP adaptation guide including layer-to-class mapping, OOP-specific anti-patterns, and gate verification requirements, see **Appendix B (A2)**.
+
+### 2.7.10 Standard Package
+
+A **Standard Package** is a published, reusable package maintained by the
+comsect1 architecture project. Standard packages serve as canonical
+examples of how to apply the architecture to common embedded
+responsibilities (vocabulary types, OS scheduling, flash storage).
+
+Using a standard package is not required for comsect1 compliance.
+Projects may define their own implementations for any responsibility
+covered by a standard package.
+
+Current instances: comsect1-std, comsect1-mdw-os,
+comsect1-mdw-storage_manager. See Section 14.
 
 ---
 

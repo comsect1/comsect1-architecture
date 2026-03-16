@@ -115,6 +115,7 @@ See **Section 8** for full naming rules.
             bsp_*.c/h
       /deps
         /extern
+          comsect1-std/             <- Standard Package (Section 14)
           <vendor-lib>/
         /middleware
           <vendor-mdw-src>/

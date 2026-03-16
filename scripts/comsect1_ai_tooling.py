@@ -47,6 +47,7 @@ class InstallSpec:
     default_home: str
     unit_label: str
     entries: tuple[InstallEntry, ...]
+    prune_target_rels: tuple[str, ...] = ()
 
 
 def _normalize(text: str) -> str:
@@ -309,6 +310,372 @@ def _render_codex_review_skill() -> str:
     )
 
 
+def _render_codex_director_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-director
+        description: Director Pack for comsect1. Use when classifying the task, selecting specialist packs, sequencing the work, and synthesizing the final plan.
+        ---
+
+        # comsect1 Director
+
+        ## Step 0: Load the Canonical Sources
+
+        Before coordinating any multi-step comsect1 task, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+
+        ## Pack Responsibility
+
+        You are the Director Pack surface.
+
+        - classify the task and repository mode
+        - decide which packs are needed
+        - sequence work as structure -> layer -> risk -> execution -> verification
+        - consolidate pack findings into one ordered plan and final result
+
+        ## Constraints
+
+        - Keep provider surfaces thin. Do not restate canonical rules from memory.
+        - Treat pack taxonomy as canonical; helper surfaces such as analyze/review do not replace it.
+        - If code changes are required, ensure discriminator records and verification are included in the plan.
+        """
+    )
+
+
+def _render_codex_structure_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-structure
+        description: Structure & Migration Pack for comsect1. Use when inspecting folder skeleton, naming, misplaced files, and legacy-layout migration order.
+        ---
+
+        # comsect1 Structure
+
+        ## Step 0: Load the Canonical Sources
+
+        Before starting structural inspection, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/07_folder_structure.md`
+        - `{{COMSECT1_ROOT}}/specs/08_naming_conventions.md`
+        - `{{COMSECT1_ROOT}}/specs/11_checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`
+
+        ## Pack Responsibility
+
+        Focus only on physical structure and migration order.
+
+        - inspect root skeleton and folder grouping
+        - detect misplaced files and legacy layout leftovers
+        - detect naming, path-placement, and build-path drift
+        - produce structural migration order before semantic rebuilding starts
+        """
+    )
+
+
+def _render_codex_layer_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-layer
+        description: Layer & Dependency Pack for comsect1. Use when applying the discriminator, correcting ida_/prx_/poi_ placement, and cleaning dependency direction.
+        ---
+
+        # comsect1 Layer
+
+        ## Step 0: Load the Canonical Sources
+
+        Before starting layer and dependency work, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/02_overview.md`
+        - `{{COMSECT1_ROOT}}/specs/04_layer_roles.md`
+        - `{{COMSECT1_ROOT}}/specs/05_dependency_rules.md`
+        - `{{COMSECT1_ROOT}}/guides/01_Design_Principles/DP_03_Praxis_Justification.md`
+        - `{{COMSECT1_ROOT}}/specs/A2_oop_adaptation.md` for OOP projects
+
+        ## Pack Responsibility
+
+        Focus only on semantic layer placement and dependency cleanup.
+
+        - apply the 3-question discriminator
+        - record discriminator results before modifying code
+        - identify logic that must move, split, or be rebuilt across ida_/prx_/poi_
+        - identify dependency cleanup targets, reverse dependencies, and layer-balance problems
+        """
+    )
+
+
+def _render_codex_risk_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-risk
+        description: Risk & Exception Pack for comsect1. Use when scanning for anti-patterns, unreasonable logic placement, and recurring exception hazards.
+        ---
+
+        # comsect1 Risk
+
+        ## Step 0: Load the Canonical Sources
+
+        Before scanning for risks and exceptions, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/10_anti_patterns.md`
+        - `{{COMSECT1_ROOT}}/specs/11_checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_05_Application_Feedback.md`
+        - `{{COMSECT1_ROOT}}/guides/04_Meta_Evaluation/ME_01_Upstream_Alignment.md`
+        - `{{COMSECT1_ROOT}}/specs/A2_oop_adaptation.md` for OOP projects
+
+        ## Pack Responsibility
+
+        Focus only on recurring design hazards and escalation signals.
+
+        - identify known anti-patterns
+        - flag unreasonable logic placement, suspicious abstractions, and exception creep
+        - distinguish blocking issues from advisory findings
+        - note when a recurring pattern should enter the feedback loop instead of being treated as a one-off mistake
+        """
+    )
+
+
+def _render_codex_verify_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-verify
+        description: Verification & Governance Pack for comsect1. Use when running checklists, gates, evidence capture, and escalation routing.
+        ---
+
+        # comsect1 Verify
+
+        ## Step 0: Load the Canonical Sources
+
+        Before verification or governance work, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_03_Multi_Project_Gate.md`
+        - `{{COMSECT1_ROOT}}/guides/04_Meta_Evaluation/ME_01_Upstream_Alignment.md`
+
+        ## Pack Responsibility
+
+        Focus only on verification, evidence, and escalation.
+
+        - run or coordinate checklists and gates
+        - capture evidence paths and gate results
+        - check tooling drift when this repository is edited
+        - route ADR or upstream-alignment escalation when needed
+        """
+    )
+
+
+def _render_codex_execute_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-execute
+        description: Execution Pack for comsect1. Use when applying an approved refactoring plan and implementing code or spec changes under pack constraints.
+        ---
+
+        # comsect1 Execute
+
+        ## Step 0: Load the Canonical Sources
+
+        Before write-enabled execution, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - the pack outputs that defined the approved plan
+
+        ## Pack Responsibility
+
+        Focus only on implementation.
+
+        - apply the approved refactoring or maintenance plan
+        - preserve discriminator records and boundary reasoning
+        - do not improvise new taxonomy or policy
+        - hand work back to verification after implementation
+        """
+    )
+
+
+def _render_codex_refactor_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-refactor
+        description: Primary one-command comsect1 refactoring surface. Use when you want end-to-end automatic refactoring or maintenance flow under the canonical pack taxonomy.
+        ---
+
+        # comsect1 Refactor
+
+        ## Step 0: Load the Canonical Sources
+
+        Before doing anything, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_07_Analysis_Procedure.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+
+        ## Command Contract
+
+        This is the primary one-command entry for end-to-end comsect1 work.
+
+        Start with an internal analysis phase using the canonical analysis
+        procedure from `EG_07`. Do not skip analysis.
+
+        Internally follow the canonical pack order:
+
+        0. Analysis pre-phase
+        1. Director
+        2. Structure & Migration
+        3. Layer & Dependency
+        4. Risk & Exception
+        5. Execution
+        6. Verification & Governance
+
+        ## Required Behavior
+
+        - classify the task and repository mode
+        - perform analysis before implementation decisions
+        - inspect structure before semantic rebuilding
+        - apply the discriminator before layer-changing edits
+        - perform code or spec changes when needed
+        - run the relevant verification checklist and gate
+        - treat failed verification as incomplete work
+
+        ## Constraints
+
+        - Keep pack meanings aligned with the canonical taxonomy.
+        - Treat `analyze` as the standalone analysis-only surface; `refactor` already includes analysis internally.
+        - Do not treat helper surfaces such as analyze/review as replacements for the full pack sequence.
+        - Produce one coherent end-to-end result, not disconnected pack notes.
+        """
+    )
+
+
+def _render_claude_director_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-director
+        description: Director Pack for comsect1. Use when coordinating pack-level maintenance or refactoring work.
+        argument-hint: "[target-path or task]"
+        disable-model-invocation: true
+        ---
+
+        # comsect1 Director
+
+        Before coordinating any multi-step comsect1 task, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+
+        Pack responsibility:
+
+        - classify the task and repository mode
+        - choose the required packs
+        - order them as structure -> layer -> risk -> execution -> verification
+        - consolidate outputs into one plan and one final result
+
+        Keep the provider surface thin. Do not restate canonical rules here.
+        """
+    )
+
+
+def _render_claude_refactor_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-refactor
+        description: Primary one-command comsect1 refactoring surface. Use for end-to-end maintenance or refactoring under the canonical pack taxonomy.
+        argument-hint: "[target-path or task]"
+        disable-model-invocation: true
+        ---
+
+        # comsect1 Refactor
+
+        Before doing anything, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_07_Analysis_Procedure.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+
+        This is the preferred one-command entry for end-to-end comsect1 work.
+
+        Start with an internal analysis phase using the canonical analysis
+        procedure from `EG_07`. Do not skip analysis.
+
+        Internally follow the canonical pack order:
+
+        0. Analysis pre-phase
+        1. Director
+        2. Structure & Migration
+        3. Layer & Dependency
+        4. Risk & Exception
+        5. Execution
+        6. Verification & Governance
+
+        `analyze` is the standalone analysis-only surface. `refactor` already
+        includes analysis internally.
+
+        Produce one coherent end-to-end result and do not redefine pack meanings.
+        """
+    )
+
+
+def _render_claude_execute_skill() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-execute
+        description: Execution Pack for comsect1. Use when applying an approved refactoring or maintenance plan.
+        argument-hint: "[approved-plan or target-path]"
+        disable-model-invocation: true
+        ---
+
+        # comsect1 Execute
+
+        Before write-enabled execution, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/00_Process_Overview.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - the pack outputs that defined the approved plan
+
+        Pack responsibility:
+
+        - apply the approved plan
+        - preserve discriminator records and boundary reasoning
+        - do not invent new policy here
+        - hand work back to verification after implementation
+        """
+    )
+
+
 def _render_claude_reviewer_agent() -> str:
     return _normalize(
         """
@@ -347,6 +714,136 @@ def _render_claude_reviewer_agent() -> str:
     )
 
 
+def _render_claude_structure_agent() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-structure
+        description: Structure & Migration Pack for comsect1. Inspects folder structure, naming, placement, and legacy-layout migration order.
+        tools: Read, Grep, Glob, Bash
+        model: sonnet
+        maxTurns: 15
+        ---
+
+        # comsect1 Structure
+
+        Before starting structural inspection, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/07_folder_structure.md`
+        - `{{COMSECT1_ROOT}}/specs/08_naming_conventions.md`
+        - `{{COMSECT1_ROOT}}/specs/11_checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_02_Refactoring_Legacy.md`
+
+        Pack responsibility:
+
+        - inspect folder skeleton and grouping
+        - detect misplaced files and legacy leftovers
+        - detect naming, path-placement, and build-path drift
+        - report structural migration order only
+        """
+    )
+
+
+def _render_claude_layer_agent() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-layer
+        description: Layer & Dependency Pack for comsect1. Rebuilds layer boundaries by applying the discriminator and identifying dependency cleanup targets.
+        tools: Read, Grep, Glob, Bash
+        model: sonnet
+        maxTurns: 15
+        ---
+
+        # comsect1 Layer
+
+        Before starting layer rebuild work, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/02_overview.md`
+        - `{{COMSECT1_ROOT}}/specs/04_layer_roles.md`
+        - `{{COMSECT1_ROOT}}/specs/05_dependency_rules.md`
+        - `{{COMSECT1_ROOT}}/guides/01_Design_Principles/DP_03_Praxis_Justification.md`
+        - `{{COMSECT1_ROOT}}/specs/A2_oop_adaptation.md` for OOP projects
+
+        Pack responsibility:
+
+        - apply the 3-question discriminator
+        - record discriminator results before code movement
+        - identify logic that must move, split, or be rebuilt across layers
+        - identify dependency cleanup targets and layer-balance problems
+        """
+    )
+
+
+def _render_claude_risk_agent() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-risk
+        description: Risk & Exception Pack for comsect1. Scans for anti-patterns, unreasonable logic placement, and recurring exception hazards.
+        tools: Read, Grep, Glob, Bash
+        model: sonnet
+        maxTurns: 15
+        ---
+
+        # comsect1 Risk
+
+        Before scanning for anti-patterns, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/specs/10_anti_patterns.md`
+        - `{{COMSECT1_ROOT}}/specs/11_checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_05_Application_Feedback.md`
+        - `{{COMSECT1_ROOT}}/guides/04_Meta_Evaluation/ME_01_Upstream_Alignment.md`
+        - `{{COMSECT1_ROOT}}/specs/A2_oop_adaptation.md` for OOP projects
+
+        Pack responsibility:
+
+        - identify known anti-patterns
+        - flag unreasonable logic placement and suspicious abstraction growth
+        - separate blocking issues from advisory signals
+        - note feedback-loop hotspots when a pattern looks systemic rather than local
+        """
+    )
+
+
+def _render_claude_verify_agent() -> str:
+    return _normalize(
+        """
+        ---
+        name: comsect1-verify
+        description: Verification & Governance Pack for comsect1. Runs checklists, gates, evidence capture, and escalation routing.
+        tools: Read, Grep, Glob, Bash
+        model: sonnet
+        maxTurns: 15
+        ---
+
+        # comsect1 Verify
+
+        Before verification or governance work, read:
+
+        - `{{COMSECT1_ROOT}}/guides/00_AI_ENTRYPOINT.md`
+        - `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_01_Post_Task_Checklist.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_02_AIAD_Auto_Gate.md`
+        - `{{COMSECT1_ROOT}}/guides/03_Verification/V_03_Multi_Project_Gate.md`
+        - `{{COMSECT1_ROOT}}/guides/04_Meta_Evaluation/ME_01_Upstream_Alignment.md`
+
+        Pack responsibility:
+
+        - run or coordinate checklists and gates
+        - capture evidence paths and gate results
+        - check tooling drift when this repository is edited
+        - route ADR or upstream-alignment escalation when needed
+        """
+    )
+
+
 def _render_codex_analyze_openai_yaml() -> str:
     return _normalize(
         """
@@ -369,6 +866,83 @@ def _render_codex_review_openai_yaml() -> str:
     )
 
 
+def _render_codex_director_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Director"
+          short_description: "Coordinate comsect1 pack-level refactoring work"
+          default_prompt: "Use $comsect1-director to classify this task, select the required packs, and synthesize the final plan."
+        """
+    )
+
+
+def _render_codex_structure_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Structure"
+          short_description: "Inspect comsect1 layout, naming, and migration drift"
+          default_prompt: "Use $comsect1-structure to inspect folder structure, naming, misplaced files, and legacy-layout migration order."
+        """
+    )
+
+
+def _render_codex_layer_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Layer"
+          short_description: "Rebuild comsect1 layer and dependency boundaries"
+          default_prompt: "Use $comsect1-layer to apply the discriminator, correct ida_/prx_/poi_ placement, and clean dependency direction."
+        """
+    )
+
+
+def _render_codex_risk_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Risk"
+          short_description: "Scan for comsect1 anti-patterns and exception hazards"
+          default_prompt: "Use $comsect1-risk to scan for anti-patterns, unreasonable logic placement, and recurring exception hazards."
+        """
+    )
+
+
+def _render_codex_verify_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Verify"
+          short_description: "Run comsect1 verification and governance checks"
+          default_prompt: "Use $comsect1-verify to run the relevant checklists, gates, and escalation routing for this task."
+        """
+    )
+
+
+def _render_codex_execute_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Execute"
+          short_description: "Apply an approved comsect1 refactoring plan"
+          default_prompt: "Use $comsect1-execute to implement the approved refactoring plan and then hand off to verification."
+        """
+    )
+
+
+def _render_codex_refactor_openai_yaml() -> str:
+    return _normalize(
+        """
+        interface:
+          display_name: "comsect1 Refactor"
+          short_description: "Run one-command end-to-end comsect1 refactoring"
+          default_prompt: "Use $comsect1-refactor to perform end-to-end comsect1 refactoring or maintenance using the canonical pack sequence."
+        """
+    )
+
+
 def _render_codex_install_doc() -> str:
     return _normalize(
         """
@@ -387,6 +961,7 @@ def _render_codex_install_doc() -> str:
 
         ```text
         $CODEX_HOME/skills/
+          comsect1-refactor/
           comsect1-analyze/
           comsect1-review/
 
@@ -438,20 +1013,35 @@ def _render_codex_install_doc() -> str:
 
         Confirm:
 
-        1. Codex lists `comsect1-analyze`
-        2. Codex lists `comsect1-review`
-        3. the target project has a thin `AGENTS.md`
+        1. Codex lists `comsect1-refactor`
+        2. Codex lists `comsect1-analyze`
+        3. Codex lists `comsect1-review`
+        4. the target project has a thin `AGENTS.md`
 
-        Restart Codex after installing skills so new skills are picked up.
-        In Codex, these are skills invoked with `$...`, not slash commands.
-        Check the `$` skill picker after a full Codex restart.
+Restart Codex after installing skills so new skills are picked up.
+In Codex, these are skills invoked with `$...`, not slash commands.
+Check the `$` skill picker after a full Codex restart.
+
+The installer also removes older pack-level Codex skills such as
+`comsect1-director` and `comsect1-layer` so the visible top-level command set
+stays minimal.
+
+Default use:
+
+- use `comsect1-refactor` for normal end-to-end work
+- use `comsect1-analyze` only when you want analysis/reporting without refactoring
+- use `comsect1-review` only when you want findings-only review
 
         Explicit invocation examples:
 
         ```text
+        $comsect1-refactor refactor codes/comsect1 end-to-end.
         $comsect1-analyze analyze codes/comsect1 against the comsect1 architecture rules.
         $comsect1-review review this change for comsect1 compliance.
         ```
+
+Pack taxonomy remains canonical, but Codex does not expose each pack as a
+top-level user-visible skill. Use `comsect1-refactor` as the normal command.
 
         ## Project-local Rule
 
@@ -483,6 +1073,13 @@ def _render_claude_install_doc() -> str:
         ```text
         ~/.claude/
           rules/comsect1.md
+          skills/comsect1-refactor/SKILL.md
+          skills/comsect1-director/SKILL.md
+          skills/comsect1-execute/SKILL.md
+          agents/comsect1-structure/AGENT.md
+          agents/comsect1-layer/AGENT.md
+          agents/comsect1-risk/AGENT.md
+          agents/comsect1-verify/AGENT.md
           agents/comsect1-reviewer/AGENT.md
           skills/comsect1-analyze/SKILL.md
         ```
@@ -501,19 +1098,29 @@ def _render_claude_install_doc() -> str:
         powershell -ExecutionPolicy Bypass -File tooling\\claude-code\\install.ps1
         ```
 
-        The shell and PowerShell wrappers are thin entrypoints over:
+The shell and PowerShell wrappers are thin entrypoints over:
 
         ```text
-        python scripts/comsect1_ai_tooling.py install --tool claude-code
-        ```
+python scripts/comsect1_ai_tooling.py install --tool claude-code
+```
+
+Default use:
+
+- use `comsect1-refactor` for normal end-to-end work
+- use `comsect1-analyze` only when you want analysis/reporting without refactoring
+- use `comsect1-reviewer` only when you want findings-only review
 
         ## Verify
 
-        In Claude Code, confirm:
+        In Claude Code, confirm the primary user-facing surfaces:
 
         1. `comsect1.md` is loaded
-        2. `comsect1-reviewer` is available
+        2. `/comsect1-refactor` is available
         3. `/comsect1-analyze` is available
+        4. `comsect1-reviewer` is available
+
+        Internal pack files may exist as provider implementation detail and do
+        not need to appear as separate user-facing commands.
 
         ## Project-local Rule
 
@@ -544,7 +1151,8 @@ def _render_common_tooling_model_block() -> str:
         The managed surface includes:
 
         - root adapters such as `AGENTS.md` and `CLAUDE.md`
-        - tool-specific skills, reviewers, and rules files
+        - minimal user-facing surfaces such as `refactor`, `analyze`, and `review`
+        - provider-internal pack-aligned files that preserve the canonical taxonomy
         - install/bootstrap wrapper scripts under `tooling/`
         - tool-specific package docs under `tooling/<tool>/INSTALL.md`
         - generated blocks inside this shared packaging guide
@@ -557,8 +1165,8 @@ def _render_common_tooling_matrix_block() -> str:
         """
         | Tool | Package doc | Installs | Project-local adapter |
         |------|-------------|----------|-----------------------|
-        | Claude Code | `tooling/claude-code/INSTALL.md` | global rule + reviewer + analyze skill | optional thin `CLAUDE.md` |
-        | Codex | `tooling/codex/INSTALL.md` | analyze skill + review skill | required thin `AGENTS.md` via bootstrap |
+        | Claude Code | `tooling/claude-code/INSTALL.md` | user-facing refactor/analyze/review surfaces plus internal pack-aligned files | optional thin `CLAUDE.md` |
+        | Codex | `tooling/codex/INSTALL.md` | user-facing refactor/analyze/review skills | required thin `AGENTS.md` via bootstrap |
         """
     )
 
@@ -721,10 +1329,31 @@ def _generated_repo_files() -> dict[str, str]:
         "CLAUDE.md": _render_repo_adapter("Claude"),
         "tooling/codex/templates/AGENTS.md": _render_codex_project_adapter_template(),
         "tooling/claude-code/rules/comsect1.md": _render_claude_global_rule(),
+        "tooling/codex/skills/comsect1-refactor/SKILL.md": _render_codex_refactor_skill(),
+        "tooling/codex/skills/comsect1-director/SKILL.md": _render_codex_director_skill(),
+        "tooling/codex/skills/comsect1-structure/SKILL.md": _render_codex_structure_skill(),
+        "tooling/codex/skills/comsect1-layer/SKILL.md": _render_codex_layer_skill(),
+        "tooling/codex/skills/comsect1-risk/SKILL.md": _render_codex_risk_skill(),
+        "tooling/codex/skills/comsect1-verify/SKILL.md": _render_codex_verify_skill(),
+        "tooling/codex/skills/comsect1-execute/SKILL.md": _render_codex_execute_skill(),
         "tooling/codex/skills/comsect1-analyze/SKILL.md": _render_codex_analyze_skill(),
         "tooling/claude-code/skills/comsect1-analyze/SKILL.md": _render_claude_analyze_skill(),
+        "tooling/claude-code/skills/comsect1-refactor/SKILL.md": _render_claude_refactor_skill(),
+        "tooling/claude-code/skills/comsect1-director/SKILL.md": _render_claude_director_skill(),
+        "tooling/claude-code/skills/comsect1-execute/SKILL.md": _render_claude_execute_skill(),
         "tooling/codex/skills/comsect1-review/SKILL.md": _render_codex_review_skill(),
         "tooling/claude-code/agents/comsect1-reviewer/AGENT.md": _render_claude_reviewer_agent(),
+        "tooling/claude-code/agents/comsect1-structure/AGENT.md": _render_claude_structure_agent(),
+        "tooling/claude-code/agents/comsect1-layer/AGENT.md": _render_claude_layer_agent(),
+        "tooling/claude-code/agents/comsect1-risk/AGENT.md": _render_claude_risk_agent(),
+        "tooling/claude-code/agents/comsect1-verify/AGENT.md": _render_claude_verify_agent(),
+        "tooling/codex/skills/comsect1-refactor/agents/openai.yaml": _render_codex_refactor_openai_yaml(),
+        "tooling/codex/skills/comsect1-director/agents/openai.yaml": _render_codex_director_openai_yaml(),
+        "tooling/codex/skills/comsect1-structure/agents/openai.yaml": _render_codex_structure_openai_yaml(),
+        "tooling/codex/skills/comsect1-layer/agents/openai.yaml": _render_codex_layer_openai_yaml(),
+        "tooling/codex/skills/comsect1-risk/agents/openai.yaml": _render_codex_risk_openai_yaml(),
+        "tooling/codex/skills/comsect1-verify/agents/openai.yaml": _render_codex_verify_openai_yaml(),
+        "tooling/codex/skills/comsect1-execute/agents/openai.yaml": _render_codex_execute_openai_yaml(),
         "tooling/codex/skills/comsect1-analyze/agents/openai.yaml": _render_codex_analyze_openai_yaml(),
         "tooling/codex/skills/comsect1-review/agents/openai.yaml": _render_codex_review_openai_yaml(),
         "tooling/codex/INSTALL.md": _render_codex_install_doc(),
@@ -766,6 +1395,11 @@ INSTALL_SPECS: dict[str, InstallSpec] = {
         unit_label="skill(s)",
         entries=(
             InstallEntry(
+                source_rel="tooling/codex/skills/comsect1-refactor",
+                target_rel="skills/comsect1-refactor",
+                kind="dir",
+            ),
+            InstallEntry(
                 source_rel="tooling/codex/skills/comsect1-analyze",
                 target_rel="skills/comsect1-analyze",
                 kind="dir",
@@ -775,6 +1409,14 @@ INSTALL_SPECS: dict[str, InstallSpec] = {
                 target_rel="skills/comsect1-review",
                 kind="dir",
             ),
+        ),
+        prune_target_rels=(
+            "skills/comsect1-director",
+            "skills/comsect1-structure",
+            "skills/comsect1-layer",
+            "skills/comsect1-risk",
+            "skills/comsect1-verify",
+            "skills/comsect1-execute",
         ),
     ),
     "claude-code": InstallSpec(
@@ -787,6 +1429,41 @@ INSTALL_SPECS: dict[str, InstallSpec] = {
             InstallEntry(
                 source_rel="tooling/claude-code/rules/comsect1.md",
                 target_rel="rules/comsect1.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/skills/comsect1-refactor/SKILL.md",
+                target_rel="skills/comsect1-refactor/SKILL.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/skills/comsect1-director/SKILL.md",
+                target_rel="skills/comsect1-director/SKILL.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/skills/comsect1-execute/SKILL.md",
+                target_rel="skills/comsect1-execute/SKILL.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/agents/comsect1-structure/AGENT.md",
+                target_rel="agents/comsect1-structure/AGENT.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/agents/comsect1-layer/AGENT.md",
+                target_rel="agents/comsect1-layer/AGENT.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/agents/comsect1-risk/AGENT.md",
+                target_rel="agents/comsect1-risk/AGENT.md",
+                kind="file",
+            ),
+            InstallEntry(
+                source_rel="tooling/claude-code/agents/comsect1-verify/AGENT.md",
+                target_rel="agents/comsect1-verify/AGENT.md",
                 kind="file",
             ),
             InstallEntry(
@@ -863,6 +1540,7 @@ def install_tool(tool: str, repo_root: Path, target_home: Path | None = None) ->
     replacements = {PLACEHOLDER_REPO: str(repo_root)}
     installed = 0
     backed_up = 0
+    pruned = 0
 
     print(f"comsect1 Architecture - {spec.display_name} Setup")
     print("=" * (len(spec.display_name) + 30))
@@ -872,6 +1550,18 @@ def install_tool(tool: str, repo_root: Path, target_home: Path | None = None) ->
     print("")
 
     home.mkdir(parents=True, exist_ok=True)
+
+    for target_rel in spec.prune_target_rels:
+        target = home / target_rel
+        if not target.exists():
+            continue
+        backup = _backup_path(target)
+        if backup is not None:
+            print(f"  [backup]  {target} -> {backup}")
+            backed_up += 1
+            _remove_path(backup)
+        print(f"  [remove]  {target}")
+        pruned += 1
 
     for entry in spec.entries:
         source = repo_root / entry.source_rel
@@ -898,6 +1588,7 @@ def install_tool(tool: str, repo_root: Path, target_home: Path | None = None) ->
     print("")
     print("Done.")
     print(f"  Installed: {installed} {spec.unit_label}")
+    print(f"  Pruned:    {pruned} obsolete item(s)")
     print(f"  Backed up: {backed_up} item(s)")
     if tool == "codex":
         print("")

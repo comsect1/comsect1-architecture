@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Refactor"
+  short_description: "Run one-command end-to-end comsect1 refactoring"
+  default_prompt: "Use $comsect1-refactor to perform end-to-end comsect1 refactoring or maintenance using the canonical pack sequence."

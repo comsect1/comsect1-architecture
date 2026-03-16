@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Layer"
+  short_description: "Rebuild comsect1 layer and dependency boundaries"
+  default_prompt: "Use $comsect1-layer to apply the discriminator, correct ida_/prx_/poi_ placement, and clean dependency direction."

@@ -12,6 +12,9 @@ Primary goal:
 - formalize the contract between Middleware and consumers (`prx_` / `poi_`)
 - keep Middleware reusable and architecture-compliant
 
+For canonical reference implementations of OS scheduling and flash storage
+middleware, see Section 14 (Standard Packages).
+
 ---
 
 ## 13.1 Definition and Role

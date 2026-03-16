@@ -85,6 +85,12 @@ If any item fails, the task is not complete.
 - [ ] `svc_` files have header comments documenting purpose and consumer features.
 - [ ] If a feature consuming a `svc_` was modified/removed, `svc_` consolidation reviewed.
 
+5. Service role authenticity
+- [ ] Each `svc_` module wraps a genuine infrastructure mechanism (`mdw_`, `hal_`)
+  or provides reusable computation. A `svc_` module that only stores and
+  retrieves pointers or data for cross-feature consumption is a data plane
+  (`stm_`) role, not a capability plane (`svc_`) role.
+
 ---
 
 ## E. Datastream (`stm_`) Verification

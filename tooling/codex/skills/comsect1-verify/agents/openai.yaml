@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Verify"
+  short_description: "Run comsect1 verification and governance checks"
+  default_prompt: "Use $comsect1-verify to run the relevant checklists, gates, and escalation routing for this task."

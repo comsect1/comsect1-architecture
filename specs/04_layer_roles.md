@@ -154,7 +154,7 @@ void Ida_Core_Entry(void)
 
 Feature layers answer different questions:
 
-- `ida_`: WHAT/WHEN
+- `ida_`: WHAT/WHEN/WHICH
 - `prx_`: externally-coupled interpretation with domain meaning
 - `poi_`: mechanical execution
 
@@ -164,6 +164,30 @@ Allowed:
 - business decisions, policy, flow
 - include `cfg_core.h`
 - include own `prx_`/`poi_` headers
+
+#### Idea Responsibility Catalog
+
+Idea is the **heaviest logic layer** in a well-structured feature. The
+following responsibilities belong in `ida_` when they do not require
+external dependency context:
+
+| Category | Examples |
+|----------|----------|
+| State machines | Sleep transitions, measurement cycles, operational mode FSMs |
+| Policy decisions | Threshold evaluation with hysteresis, error acceptance criteria |
+| Orchestration sequences | Multi-step initialization order, calibration setup, registration chains |
+| Domain computation | Voltage/temperature conversion using ida_-local coefficients, averaging, normalization |
+| Command validation | Input clamping, mode normalization, safety-based brightness limiting |
+| Guard logic | Readiness gates, stabilization delays, mode preconditions |
+| Scheduling policy | Round-robin dispatch order, phase advancement, task period selection |
+
+These categories are not exhaustive. The governing rule remains: if the
+logic does not require external dependency context (Q1 of the
+3-Question Discriminator), it belongs in `ida_`.
+
+Idea files in a mature feature are typically the largest source files in
+the feature. An `ida_` file that is smaller than its corresponding
+`prx_`/`poi_` files is a red flag (Section 11.8).
 
 Prohibited:
 - include `mdw_`, `svc_`, `hal_`, `bsp_`

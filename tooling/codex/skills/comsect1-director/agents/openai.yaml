@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Director"
+  short_description: "Coordinate comsect1 pack-level refactoring work"
+  default_prompt: "Use $comsect1-director to classify this task, select the required packs, and synthesize the final plan."

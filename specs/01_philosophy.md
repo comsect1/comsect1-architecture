@@ -107,7 +107,14 @@ This specification functions as both reference and operational directive.
 
 The central pattern of comsect1 is the **Idea-Praxis-Poiesis** triad:
 
-- **Idea (`ida_`)**: pure intent and domain decision (WHAT/WHEN)
+- **Idea (`ida_`)**: domain decisions, policy, and orchestration logic (WHAT to do, WHEN to do it, WHICH conditions govern it)
+
+  WHAT/WHEN/WHICH is shorthand for the complete domain decision surface:
+  state machines, threshold policies, orchestration sequences, guard
+  conditions, and domain-specific computations that can be expressed
+  without external dependency context. It does not mean merely "which
+  features exist" or "when to initialize."
+
 - **Praxis (`prx_`)**: domain interpretation inseparable from external types/protocols
 - **Poiesis (`poi_`)**: faithful mechanical production (wrapping, bridging, forwarding)
 
@@ -115,7 +122,7 @@ The central pattern of comsect1 is the **Idea-Praxis-Poiesis** triad:
 
 The layer names are drawn from classical philosophy, deliberately unfamiliar to prevent silent mapping onto prior software conventions:
 
-- **Idea** (Greek ἰδέα): Plato's concept of the eternal Form — the pure, uncorrupted archetype that exists independent of its material expression. In comsect1, `ida_` carries this sense: pure intent, untouched by implementation detail.
+- **Idea** (Greek ἰδέα): Plato's concept of the eternal Form — the pure, uncorrupted archetype that exists independent of its material expression. In comsect1, `ida_` carries this sense: the governing form that determines what the system does and under what conditions, free from implementation coupling but rich in domain logic.
 - **Praxis** (Greek πρᾶξις): Aristotle's concept of theory made manifest through action — knowledge that only exists in the doing. In comsect1, `prx_` is where abstract intent meets the concrete shapes of external systems.
 - **Poiesis** (Greek ποίησις): Aristotle's concept of productive making — the craft of bringing something into being. In comsect1, `poi_` is faithful mechanical production: the act of making without domain judgment.
 

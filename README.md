@@ -58,8 +58,21 @@ Tool-specific packages are thin adapters around that entrypoint:
 
 | Tool | Package doc | What it installs |
 |------|-------------|------------------|
-| Claude Code | [`tooling/claude-code/INSTALL.md`](./tooling/claude-code/INSTALL.md) | global rule + reviewer + analyze skill |
-| Codex | [`tooling/codex/INSTALL.md`](./tooling/codex/INSTALL.md) | analyze skill + review skill + project bootstrap |
+| Claude Code | [`tooling/claude-code/INSTALL.md`](./tooling/claude-code/INSTALL.md) | minimal user-facing refactor/analyze/review surfaces backed by internal pack-aligned files |
+| Codex | [`tooling/codex/INSTALL.md`](./tooling/codex/INSTALL.md) | minimal user-facing refactor/analyze/review skills + project bootstrap |
+
+The generic sub-agent pack taxonomy is defined once in
+[`guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md`](./guides/02_Execution_Guides/EG_09_AI_Subagent_Operation.md)
+and then exposed through thin provider-native surfaces.
+
+Default command model:
+
+- `comsect1-refactor`: primary end-to-end command, including internal analysis
+- `comsect1-analyze`: standalone analysis-only command
+- `comsect1-review`: standalone review-only command where supported
+
+Pack taxonomy remains canonical underneath those commands, but end users should
+not need to choose from a large pack-level command set during normal work.
 
 ---
 

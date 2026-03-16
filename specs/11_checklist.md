@@ -12,7 +12,10 @@ Before considering architecture work complete, verify layer placement and depend
 
 ## 11.1 Idea Layer Verification
 
-- [ ] Idea contains business decision logic (WHAT/WHEN)
+- [ ] Idea contains business decision logic (WHAT/WHEN/WHICH)
+- [ ] Idea contains substantive domain logic (state machines, policy
+  evaluations, orchestration sequences, guard conditions) -- not merely
+  forwarding calls
 - [ ] Idea is readable as requirements-level intent
 - [ ] Idea includes only `cfg_core.h` and own `prx_`/`poi_` headers
 - [ ] Idea does not include `cfg_`, `db_`, `stm_`, `mdw_`, `svc_`, `hal_`, `bsp_`
@@ -95,7 +98,9 @@ Platform -> Feature reverse includes
 
 ## 11.8 Red Flags
 
-- [!] Empty Idea: Idea is only one-line pass-through
+- [!] Anemic Idea: Idea is primarily forwarding calls with minimal domain
+  logic. If `ida_` is smaller than the corresponding `prx_`/`poi_`, this
+  is a red flag (Section 10.5)
 - [!] Fat Praxis: PRX holds mostly mechanical wrappers
 - [!] Fat Poiesis: POI contains business or protocol interpretation logic
 - [!] Requirement changes modify only PRX/POI while Idea stays unchanged

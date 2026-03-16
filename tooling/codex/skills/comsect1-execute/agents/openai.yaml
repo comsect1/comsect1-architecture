@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Execute"
+  short_description: "Apply an approved comsect1 refactoring plan"
+  default_prompt: "Use $comsect1-execute to implement the approved refactoring plan and then hand off to verification."

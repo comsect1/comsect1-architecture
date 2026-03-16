@@ -156,12 +156,19 @@ The Core Contract header (`/infra/bootstrap/cfg_core.h`) contains shared types a
 typedef enum {
     RESULT_OK,
     RESULT_FAIL,
+    RESULT_BUSY,
     RESULT_UNSUPPORTED,
     RESULT_UNDEFINED
 } Result_t;
 ```
 
 It is shared contract vocabulary, not a feature resource.
+
+The canonical definition of `Result_t` and result check macros is
+provided by the standard package `cfg_core_std.h` (Section 14.2).
+Projects that adopt comsect1-std include these types transitively by
+having `cfg_core.h` include `cfg_core_std.h`. Projects may also define
+these types directly in `cfg_core.h` without adopting comsect1-std.
 
 ### 3.6.1 Contract Vocabulary vs Target Configuration
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "comsect1 Structure"
+  short_description: "Inspect comsect1 layout, naming, and migration drift"
+  default_prompt: "Use $comsect1-structure to inspect folder structure, naming, misplaced files, and legacy-layout migration order."
