@@ -50,8 +50,15 @@ Use this discriminator before placing code:
    - Yes: move judgment to **Idea**, keep remainder in **Poiesis**
    - No: go to Q3
 3. Is there inseparable domain judgment coupled to external types?
-   - Yes: **Praxis**
+   - Yes: **Praxis** (translation only — see scope note below)
    - No: **Poiesis**
+
+**Q3 scope note**: "Inseparable" means the **minimum interpretation**
+that cannot be expressed without referencing the external type's internal
+structure. Praxis translates external types into domain-neutral forms;
+it does not decide what to do with the translated result. Post-translation
+decisions (dispatch, orchestration, policy evaluation) belong in Idea,
+not Praxis. See Section 4.1.3 PRX scope rule.
 
 ### The 3 Principles
 

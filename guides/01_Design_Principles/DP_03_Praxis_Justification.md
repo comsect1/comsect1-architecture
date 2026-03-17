@@ -142,6 +142,20 @@ Most external API usage is mechanical wrapping (poi_). Praxis is only for cases 
 
 **Fix**: These are poi_ functions. Move them to poi_ and reserve prx_ for genuine interpretation logic.
 
+### Anti-Pattern: "Praxis Scope Overflow"
+
+**Symptom**: prx_ file not only translates external types but also decides what to do with the translated data — computing targets, evaluating policies, dispatching commands, or publishing results. The prx_ file is larger than the ida_ file.
+
+**Wrong reasoning**: "The protocol decode logic requires external types, so the dispatch that follows the decode must also stay in prx_ because it's part of the same flow."
+
+**Correct principle**: Praxis is the **contact point** with the external type boundary. Its role ends the moment data crosses that boundary into a domain-neutral form. All subsequent decisions — what to do with the decoded data, where to dispatch it, under which conditions — belong in Idea.
+
+**Fix**: Split the prx_ function into:
+1. **Translation** (stays in prx_): decode external frame → domain-neutral struct
+2. **Decision and dispatch** (move to ida_): evaluate policy, compute targets, publish
+
+This anti-pattern and Anemic Idea (Section 10.5) are complementary: Praxis Scope Overflow is typically the cause; Anemic Idea is the symptom.
+
 ---
 
 ## 5. Quick Decision Checklist

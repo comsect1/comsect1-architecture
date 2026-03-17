@@ -201,9 +201,25 @@ PRX (`prx_`) allowed:
 - call own `poi_`
 - include/use `mdw_`, `svc_`, `hal_`, `cfg_`, `db_`, `stm_`
 
+PRX scope rule:
+
+> Praxis is the **contact point** with the external type boundary, not a
+> host for domain logic. Its role is limited to translating external types
+> into domain-neutral forms that Idea can consume.
+>
+> Once data crosses the external type boundary, all decisions about what
+> to do with that data — dispatch, orchestration, policy evaluation,
+> state transitions — belong in Idea. Praxis must not accumulate domain
+> judgment beyond what is required for the translation itself.
+>
+> A `prx_` function that decodes an external frame, decides what action
+> to take, and dispatches the result is doing Idea's job. Only the decode
+> step belongs in `prx_`; the decide-and-dispatch steps belong in `ida_`.
+
 PRX prohibited:
 - include other feature's `ida_`/`prx_`/`poi_`
 - upward call into Idea
+- domain decisions beyond external type translation (belongs in `ida_`)
 
 POI (`poi_`) allowed:
 - wrapping/bridging/forwarding of OS/HAL/module/resource interactions
@@ -342,7 +358,7 @@ responsibilities.
 | Role | Prefix | Core responsibility | Must not do |
 |------|--------|---------------------|-------------|
 | Idea | `ida_` | business intent/decision | include infra/deps/resources/platform directly |
-| Praxis | `prx_` | externally-coupled interpretation | mechanical-only wrapper accumulation, cross-feature include |
+| Praxis | `prx_` | externally-coupled interpretation (boundary translation only) | domain decisions beyond translation, mechanical-only wrapper accumulation, cross-feature include |
 | Poiesis | `poi_` | mechanical production/execution | business/protocol meaning decisions |
 
 ---

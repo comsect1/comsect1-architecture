@@ -106,7 +106,65 @@ the largest layer.
 
 ---
 
-## 10.6 Cross-feature Direct Include
+## 10.6 Praxis Scope Overflow
+
+**Violation:** Praxis scope rule (Section 4.1.3).
+
+**Symptom:** `prx_` file not only interprets external types but also decides
+what to do with the interpreted data — dispatching commands, evaluating
+policies, managing state, or publishing results.
+
+```c
+/* prx_comm.c -- WRONG: Praxis Scope Overflow */
+funcResult_t Prx_Comm_DecodeAndPublish(const uint8_t* frame)
+{
+    Command_t cmd = decode_frame(frame);    /* translation: belongs in prx_ */
+    uint8_t mask = compute_target(cmd);     /* decision: belongs in ida_ */
+    return publish_command(mask, &cmd);      /* dispatch: belongs in ida_ */
+}
+```
+
+**Root cause:** Misreading Q3 "inseparable domain judgment coupled to
+external types" as "any judgment that uses external types stays in prx_."
+The correct reading is: praxis performs only the minimum interpretation
+that cannot be expressed without the external type. Once the external
+boundary is crossed, all subsequent decisions belong in Idea.
+
+**Impact:**
+- Idea becomes anemic (Section 10.5) as a direct consequence
+- requirement changes modify `prx_` instead of `ida_`
+- domain logic becomes invisible, buried behind an external-type boundary
+- `prx_` grows larger than `ida_`, inverting the expected layer balance
+
+**Fix:** Separate the `prx_` function into translation (stays in `prx_`)
+and post-translation decisions (move to `ida_`). Praxis returns a
+domain-neutral result; Idea decides what to do with it.
+
+```c
+/* prx_comm.c -- CORRECT: translation only */
+funcResult_t Prx_Comm_DecodeFrame(const uint8_t* frame, Command_t* out)
+{
+    /* translate external frame into domain-neutral command */
+}
+
+/* ida_comm.c -- CORRECT: Idea owns decisions */
+void Ida_Comm_Main(void)
+{
+    Command_t cmd;
+    if (Prx_Comm_DecodeFrame(frame, &cmd) == RESULT_OK) {
+        uint8_t mask = Ida_Comm_ComputeTarget(&cmd);   /* policy */
+        Poi_Comm_PublishCommand(mask, &cmd);             /* dispatch */
+    }
+}
+```
+
+**Diagnostic:** If `prx_` is larger than `ida_`, Praxis Scope Overflow is
+likely. This anti-pattern and Anemic Idea (Section 10.5) are
+complementary: one causes the other.
+
+---
+
+## 10.7 Cross-feature Direct Include
 
 **Violation:** feature isolation.
 
@@ -123,7 +181,7 @@ Correct pattern:
 
 ---
 
-## 10.7 Resource Files Including Layer Headers
+## 10.8 Resource Files Including Layer Headers
 
 **Violation:** reverse dependency from data to logic.
 
@@ -136,7 +194,7 @@ Resources must remain pure data.
 
 ---
 
-## 10.8 Core Execution Layer Including HAL/BSP
+## 10.9 Core Execution Layer Including HAL/BSP
 
 **Violation:** core purity.
 
@@ -144,7 +202,7 @@ Core execution (`poi_core` by default) must not include HAL/BSP directly when pl
 
 ---
 
-## 10.9 Platform Evidence Outside Platform
+## 10.10 Platform Evidence Outside Platform
 
 **Violation:** semantic placement.
 
@@ -161,7 +219,7 @@ into `bsp_`.
 
 ---
 
-## 10.10 HAL/BSP Mixed Responsibility
+## 10.11 HAL/BSP Mixed Responsibility
 
 **Violation:** platform role collapse.
 
@@ -178,11 +236,11 @@ Correct direction:
 
 ---
 
-## 10.11 OOP-Specific Anti-patterns
+## 10.12 OOP-Specific Anti-patterns
 
 The following anti-patterns apply when comsect1 is used with object-oriented languages. For the full treatment, see **Appendix B (A2)**.
 
-### 10.11.1 Reverse Dependency via Inheritance
+### 10.12.1 Reverse Dependency via Inheritance
 
 **Violation:** dependency direction (Section 2.7.3).
 
@@ -190,7 +248,7 @@ Praxis or Poiesis class inherits from Idea class, creating an implicit upward de
 
 Correct: use composition. Idea calls Praxis/Poiesis; it does not extend them.
 
-### 10.11.2 Idea Holding Mutable State
+### 10.12.2 Idea Holding Mutable State
 
 **Violation:** Idea purity.
 
@@ -198,7 +256,7 @@ Idea class declares mutable instance fields. Stateful Idea introduces temporal c
 
 Correct: Idea methods are static/shared. State belongs in `cfg_`/`db_`/`stm_` or Praxis/Poiesis.
 
-### 10.11.3 God-Class (Layer Collapse)
+### 10.12.3 God-Class (Layer Collapse)
 
 **Violation:** layer role clarity (Section 10.4).
 

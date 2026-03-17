@@ -26,6 +26,8 @@ Before considering architecture work complete, verify layer placement and depend
 ## 11.2 Praxis Layer Verification
 
 - [ ] Praxis contains externally-coupled domain interpretation
+- [ ] Praxis is limited to external type boundary translation; post-translation
+  decisions (dispatch, orchestration, policy) are in Idea (Section 4.1.3 PRX scope rule)
 - [ ] Praxis may call own `poi_` and `mdw_`/`svc_`/`hal_`/`cfg_`/`db_`/`stm_`
 - [ ] Praxis does not include another feature's `ida_`/`prx_`/`poi_`
 - [ ] Praxis does not call upward into Idea
@@ -101,6 +103,8 @@ Platform -> Feature reverse includes
 - [!] Anemic Idea: Idea is primarily forwarding calls with minimal domain
   logic. If `ida_` is smaller than the corresponding `prx_`/`poi_`, this
   is a red flag (Section 10.5)
+- [!] Praxis Scope Overflow: PRX decodes, decides, and dispatches —
+  only translation belongs in PRX; decisions belong in Idea (Section 10.6)
 - [!] Fat Praxis: PRX holds mostly mechanical wrappers
 - [!] Fat Poiesis: POI contains business or protocol interpretation logic
 - [!] Requirement changes modify only PRX/POI while Idea stays unchanged
