@@ -221,7 +221,7 @@ def _render_codex_analyze_skill() -> str:
         Read the canonical report format guide before generating the report:
         `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_06_Analysis_Report_Format.md`
 
-        Write the report to **`.comsect1-analysis.md`** at the target root AND display
+        Write the report to **`.comsect1-analysis-report.md`** at the target root AND display
         in conversation. The guide defines the exact format. Do not improvise.
         """
     )
@@ -272,7 +272,7 @@ def _render_claude_analyze_skill() -> str:
         Read the canonical report format guide before generating the report:
         `{{COMSECT1_ROOT}}/guides/02_Execution_Guides/EG_06_Analysis_Report_Format.md`
 
-        Write the report to **`.comsect1-analysis.md`** at the target root AND display
+        Write the report to **`.comsect1-analysis-report.md`** at the target root AND display
         in conversation. The guide defines the exact format. Do not improvise.
         """
     )

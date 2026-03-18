@@ -11,7 +11,7 @@ free-form zones for interpretive analysis.
 
 ## Report output
 
-Write the complete report to **`.comsect1-analysis.md`** at the root of the
+Write the complete report to **`.comsect1-analysis-report.md`** at the root of the
 analyzed target directory. This file enables cross-session continuity — a
 different AI session can read the report and proceed with implementation.
 
@@ -24,7 +24,7 @@ Verdict Block and Closing Summary are sufficient for immediate review and
 action. Displaying the full report in conversation significantly increases
 output token consumption without adding information value.
 
-If `.comsect1-analysis.md` already exists, overwrite it. The file captures
+If `.comsect1-analysis-report.md` already exists, overwrite it. The file captures
 the latest analysis state, not a history.
 
 ---
