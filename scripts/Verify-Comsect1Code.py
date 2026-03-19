@@ -934,6 +934,29 @@ def main() -> int:
         or test_is_under_path(full_path(f), project_features_dir)
     ]
 
+    # Stage: Orphan Datastream detection (advisory)
+    stm_headers = [
+        f for f in source_files
+        if f.suffix.lower() == ".h" and get_role_info(f.name, unit_name)[0] == "datastream"
+    ]
+    if stm_headers:
+        # Collect all includes from prx_/poi_ .c files to find stm_ consumers/producers
+        prx_poi_includes: set[str] = set()
+        for pf in prx_files + poi_files:
+            try:
+                text = pf.read_text(encoding="utf-8", errors="replace")
+                for inc in get_includes_from_text(text):
+                    prx_poi_includes.add(str(inc["Leaf"]).lower())
+            except OSError:
+                pass
+        for stm_h in stm_headers:
+            if stm_h.name.lower() not in prx_poi_includes:
+                warn(
+                    str(stm_h), 1, "datastream.orphan",
+                    f"Datastream header '{stm_h.name}' is not included by any prx_/poi_ source file. "
+                    "Verify it has active producers/consumers; remove if obsolete.",
+                )
+
     # Stage: Layer Balance Invariant (v1.0.1, error severity)
     verify_layer_balance(
         ida_files, poi_files, findings,
