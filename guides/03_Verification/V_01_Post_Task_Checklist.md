@@ -15,8 +15,8 @@ If any item fails, the task is not complete.
 - [ ] `ida_` does not include `mdw_`/`svc_` headers.
 
 3. No direct resource coupling
-- [ ] `ida_` does not include feature `cfg_`/`db_`/`stm_` directly.
-- [ ] only `cfg_core.h` is included as shared contract vocabulary.
+- [ ] `ida_` does not include/import feature `cfg_`/`db_`/`stm_` directly (via `#include` in C, `using`/`Imports` in OOP).
+- [ ] only `cfg_core` is included/imported as shared contract vocabulary.
 
 4. Feature isolation
 - [ ] `ida_A` does not include any header from Feature B (`ida_`, `prx_`, `poi_`, `cfg_`, `db_`).
@@ -137,14 +137,23 @@ For each newly added/modified file touching external dependencies:
 - [ ] Release build passes.
 
 2. Dependency grep checks
-- [ ] no prohibited cross-feature include (`ida_`/`prx_`/`poi_`).
-- [ ] no prohibited `ida_` include of lower domain/resource headers.
+- [ ] no prohibited cross-feature include/import (`ida_`/`prx_`/`poi_`).
+- [ ] no prohibited `ida_` include/import of lower domain/resource headers.
 
-Suggested commands:
+Suggested commands (C/embedded — via `#include`):
 
 ```powershell
 rg -n "#include .*features/.*/(ida_|prx_|poi_)" codes/
 rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/features/*/ida_*.c
+```
+
+Suggested commands (OOP — via `using`/`Imports`):
+
+```powershell
+rg -n "using\s+.*\b(ida_|prx_|poi_)" codes/ --glob "*.cs"
+rg -n "Imports\s+.*\b(ida_|prx_|poi_)" codes/ --glob "*.vb"
+rg -n "using\s+.*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/features/*/ida_*.cs
+rg -n "Imports\s+.*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/features/*/ida_*.vb
 ```
 
 ---
@@ -182,6 +191,46 @@ rg -n "#include .*\b(mdw_|svc_|hal_|bsp_|cfg_|db_|stm_)" codes/comsect1/project/
 3. Hygiene
 - [ ] No orphaned/unused headers or sources from pre-migration.
 - [ ] Build system references updated to final folder structure.
+
+---
+
+## K. External Library Deployment Review
+
+(Applicable when the project depends on external reference libraries.
+Implements S11.12 as an actionable checklist.)
+
+### K.1 Discovery
+
+1. Library inventory
+- [ ] All external library dependencies listed (git submodules, `add_subdirectory` targets, vendored copies).
+- [ ] Each library's repository root inspected for a deployment review document.
+
+2. Review document identification
+- [ ] For each library, check for `DEPLOYMENT_REVIEW.md`, `INTEGRATION_CHECKLIST.md`, or equivalent at the library root.
+- [ ] If found, note the document path and the review scope it covers.
+
+### K.2 Execution
+
+For each library that provides a deployment review:
+
+- [ ] Copy or reference the library's review template into the project (if a template is provided).
+- [ ] Complete all library-specific checklist items with project-specific values.
+- [ ] Evaluate all formulas and thresholds defined by the library.
+- [ ] Record Pass/Fail per section.
+
+### K.3 Known Library Reviews
+
+| Library | Review Document | Key Checks |
+|---------|----------------|------------|
+| `hatbit-lib-mdw-storage-manager` | `DEPLOYMENT_REVIEW.md` | Key inventory & allocation waste, flash area capacity & layout, heap fitness, linker consistency, build artifacts, config audit |
+
+When a library is not listed above but provides its own review procedure,
+execute it and consider adding it to this table.
+
+### K.4 Post-Review
+
+- [ ] All library reviews pass, or failing items have documented justification.
+- [ ] Results are stored in the project for future reference (e.g., filled template in project docs).
 
 ---
 

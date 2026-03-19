@@ -16,6 +16,9 @@ from comsect1_gate_helpers import (
     add_finding,
     collect_source_files,
     count_code_lines as _count_code_lines,
+    detect_unit_identity,
+    requires_unit_qualification,
+    stem_has_unit_suffix,
     validate_comsect1_root_boundary,
     verify_folder_structure,
     verify_layer_balance,
@@ -218,75 +221,13 @@ def extract_api_unit(header_name: str) -> str | None:
     return stem.lower() if stem else None
 
 
-def detect_unit_identity(root_path: Path) -> dict[str, object]:
-    api_dir = root_path / "api"
-    api_units: set[str] = set()
-    api_headers: list[Path] = []
-    if api_dir.is_dir():
-        for h in sorted(api_dir.glob("*.h")):
-            unit = extract_api_unit(h.name)
-            if not unit:
-                continue
-            api_units.add(unit)
-            api_headers.append(h)
-
-    project_config_dir = root_path / "project" / "config"
-    project_units: set[str] = set()
-    project_headers: list[Path] = []
-    if project_config_dir.is_dir():
-        for h in sorted(project_config_dir.glob("cfg_project_*.h")):
-            stem = h.stem
-            inner = stem[len("cfg_project_"):]
-            if inner:
-                project_units.add(inner.lower())
-                project_headers.append(h)
-
-    resolved_unit: str | None = None
-    if len(api_units) == 1:
-        resolved_unit = next(iter(api_units))
-    elif len(project_units) == 1:
-        resolved_unit = next(iter(project_units))
-    elif len(api_units | project_units) == 1:
-        resolved_unit = next(iter(api_units | project_units))
-
-    return {
-        "api_units": api_units,
-        "api_headers": api_headers,
-        "project_units": project_units,
-        "project_headers": project_headers,
-        "resolved_unit": resolved_unit,
-    }
+# detect_unit_identity is imported from comsect1_gate_helpers
 
 
 
 
 
 
-def detect_unit_name(root_path: Path) -> str | None:
-    """Detect the unit identifier for any comsect1 unit (§8.6).
-
-    Sub-unit (api/ present): derived from api/<role>_<unit>.h (e.g. mdw_comm.h, app_demo.h)
-    Main project (no api/):  derived from project/config/cfg_project_<unit>.h
-
-    Returns None if unit cannot be determined (legacy project not yet migrated).
-    """
-    api_dir = root_path / "api"
-    if api_dir.is_dir():
-        for h in sorted(api_dir.glob("*.h")):
-            stem = h.stem
-            if "_" in stem:
-                return stem.split("_", 1)[1]
-            return stem
-        # api/ exists but no headers — fall through to project/config anchor
-
-    project_config_dir = root_path / "project" / "config"
-    if project_config_dir.is_dir():
-        for h in sorted(project_config_dir.glob("cfg_project_*.h")):
-            stem = h.stem  # e.g. "cfg_project_demo"
-            inner = stem[len("cfg_project_"):]
-            if inner:
-                return inner
-    return None
 
 
 def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
@@ -294,27 +235,7 @@ def write_json_no_bom(path: Path, payload: dict[str, object]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def stem_has_unit_suffix(stem: str, unit_name: str) -> bool:
-    return stem.lower().endswith(f"_{unit_name.lower()}")
-
-
-def requires_unit_qualification(
-    stem: str,
-    *,
-    is_under_any_bootstrap: bool,
-    is_under_any_project_features: bool,
-    is_under_any_project_config: bool,
-) -> bool:
-    stem_lower = stem.lower()
-    if not (
-        is_under_any_bootstrap
-        or is_under_any_project_features
-        or is_under_any_project_config
-    ):
-        return False
-    if stem_lower == "cfg_project" or stem_lower.startswith("cfg_project_"):
-        return True
-    return stem_lower.startswith(("ida_", "prx_", "poi_", "cfg_", "db_"))
+# stem_has_unit_suffix and requires_unit_qualification are imported from comsect1_gate_helpers
 
 
 def discover_repo_root(root_path: Path, repo_root_arg: str | None) -> Path:

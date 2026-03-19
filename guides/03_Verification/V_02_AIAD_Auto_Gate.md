@@ -40,17 +40,37 @@ Script:
 
 The unified runner (`Verify-AIADGate.py`) auto-detects the project type and activates the appropriate gate.
 
-Checks (3-layer aware):
+Common checks (both gates):
 - dedicated `/comsect1` root boundary (Section 7.2 Root Folder Convention)
+- canonical folder skeleton (`layout.required`)
 - unit identity anchors and unit-qualified naming consistency
-- include/dependency direction
-- IDA/PRX/POI role boundary rules
-- module/platform reverse dependency violations
-- semantic misplaced detection for platform-coupled code outside `/infra/platform/`
+- extended role detection (all §8.5 prefixes, `inf_` invalid)
+- placement/path validation (`path.*`)
+- unlisted role prefix detection (`naming.prefix`)
+- include/dependency direction (IDA/PRX/POI role boundary rules)
+- cross-feature layer reference isolation
+- module resource purity (`svc_`/`mdw_` must not access feature `cfg_`/`db_`/`stm_`)
+- service ownership (thin facades, misclassified registries)
+- orphan datastream detection (`datastream.orphan`)
+- dead shell detection (`structure.dead_shell`)
+- Layer Balance Invariant (Empty Idea / Fat Poiesis)
+- Red Flag heuristics (Fat Praxis, Praxis Scope Overflow, Poi Wrapper)
+
+C/embedded-specific checks:
+- `#include` dependency direction (per-include leaf analysis)
+- resource include direction (`resource.include`)
+- direct `deps/...` include path ban (`include.deps_path`)
+- platform evidence: semantic misplaced detection for platform-coupled code outside `/infra/platform/`
 - repo-root build evidence scan (MCU/BSP branches, BSP include paths, BSP target links, dummy fallbacks)
 - HAL/BSP mixed responsibility advisory
-- infra-layout invariant (folder grouping does not relax dependency rules)
-- unlisted role prefix detection (only §8.5 prefixes valid)
+- legacy layout detection (`layout.legacy`)
+- service naming export rules (`naming.service_export`)
+
+OOP-specific checks:
+- `using`/`Imports` namespace dependency analysis
+- Idea forbidden namespace imports and API calls (`ida-no-*`)
+- Idea immutability: mutable instance field detection (A2.6.5)
+- Idea self-containment: feature resource access detection (A2.6.4)
 
 Conformance enforcement:
 - All normative rules are enforced without relaxation profiles.

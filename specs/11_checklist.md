@@ -131,6 +131,36 @@ to suppress detection.
 
 ---
 
+## 11.12 External Library Deployment Review
+
+(Applicable when the project depends on external reference libraries —
+`mdw_`, `svc_`, or third-party packages)
+
+### 11.12.1 Discovery
+
+- [ ] All external library dependencies are inventoried (git submodules, `add_subdirectory` targets, vendored copies)
+- [ ] Each library's repository root is inspected for a deployment review document (e.g., `DEPLOYMENT_REVIEW.md`, `INTEGRATION_CHECKLIST.md`, or equivalent)
+- [ ] If a library provides a deployment review procedure, that procedure is executed and results recorded in the project
+
+### 11.12.2 Execution
+
+For each library that provides a deployment review:
+
+- [ ] Library-specific checklist items are completed with project-specific values
+- [ ] All formulas and thresholds defined by the library are evaluated
+- [ ] Pass/Fail summary is recorded per library
+
+### 11.12.3 Known Library Reviews
+
+| Library | Review Document | Scope |
+|---------|----------------|-------|
+| `hatbit-lib-mdw-storage-manager` | `DEPLOYMENT_REVIEW.md` | Flash key inventory, area layout, heap fitness, linker match, build artifacts, config audit |
+
+When a library is not listed above but provides its own review procedure,
+follow that procedure and consider adding it to this table.
+
+---
+
 ## 11.11 Conformance Verification (Gate Execution)
 
 ### Gate Scripts
@@ -163,13 +193,26 @@ All structural rules and Layer Balance violations produce errors. Red Flag heuri
 
 ### OOP Rules (Verify-OOPCode.py)
 
-For OOP projects, `Verify-OOPCode.py` additionally enforces:
+| Rule family | Enforced |
+|-------------|----------|
+| Root folder convention (`/comsect1` boundary) | Yes |
+| Folder structure skeleton (`layout.required`) | Yes |
+| Unit identity detection + unit-qualified naming (`naming.unit_qualified`) | Yes |
+| Extended role detection (all §8.5 prefixes: `ida_`–`app_`, `inf_` invalid) | Yes |
+| Placement/path checks (`path.*`) including `cfg_`/`db_`/`stm_` | Yes |
+| Unlisted role prefix detection (`naming.prefix`) | Yes |
+| Idea forbidden imports and API calls (`ida-no-*`) | Yes |
+| Reverse dependency checks (`prx_`→`ida_`, `poi_`→`ida_`/`prx_`) | Yes |
+| Cross-feature layer references (`cross-feature-layer-ref`) | Yes |
+| Module resource purity — `svc_`/`mdw_` must not import `cfg_`/`db_`/`stm_` (`module.resource`) | Yes |
+| Service ownership OOP — thin facades, misclassified registries (`service.*`) | Yes |
+| Orphan datastream detection (`datastream.orphan`) | Yes (advisory) |
+| Dead shell detection — `svc_` with <3 code lines (`structure.dead_shell`) | Yes |
+| Layer Balance Invariant: Empty Idea / Fat Poiesis (v1.0.1) | Yes (error) |
+| Red Flag heuristics: Fat Praxis, Praxis Scope Overflow (§11.8) | Yes (advisory) |
+| OOP-specific: ida_ feature resource access, ida_ mutable fields (A2.8.2) | Yes (advisory) |
 
-- Idea immutability and referential transparency (Appendix A2)
-- Interface-Owned Layer Boundaries
-- Praxis justification checks
-- Layer Balance Invariant: Empty Idea / Fat Poiesis (v1.0.1, error)
-- Red Flag heuristics: Fat Praxis (§11.8, advisory)
+All structural rules and Layer Balance violations produce errors. Red Flag and OOP-specific heuristics produce advisory warnings.
 
 See `specs/A2_oop_adaptation.md` for full OOP adaptation rules.
 

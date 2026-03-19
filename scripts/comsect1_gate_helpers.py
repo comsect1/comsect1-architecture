@@ -424,6 +424,134 @@ def verify_red_flags_common(
                     )
 
 
+# ---------------------------------------------------------------------------
+# Unit identity and naming helpers (shared between C and OOP gates)
+# ---------------------------------------------------------------------------
+
+def detect_unit_identity(
+    root_path: Path,
+    *,
+    header_extensions: set[str] = frozenset({".h"}),
+) -> dict[str, object]:
+    """Detect unit identity anchors from /api and /project/config.
+
+    The *header_extensions* parameter defaults to C headers (``{".h"}``).
+    OOP gates pass e.g. ``{".cs", ".vb"}`` to match class-file anchors.
+    """
+    api_dir = root_path / "api"
+    api_units: set[str] = set()
+    api_headers: list[Path] = []
+    if api_dir.is_dir():
+        for ext in sorted(header_extensions):
+            for h in sorted(api_dir.glob(f"*{ext}")):
+                unit = _extract_api_unit(h.name)
+                if not unit:
+                    continue
+                api_units.add(unit)
+                api_headers.append(h)
+
+    project_config_dir = root_path / "project" / "config"
+    project_units: set[str] = set()
+    project_headers: list[Path] = []
+    if project_config_dir.is_dir():
+        for ext in sorted(header_extensions):
+            for h in sorted(project_config_dir.glob(f"cfg_project_*{ext}")):
+                stem = h.stem
+                inner = stem[len("cfg_project_"):]
+                if inner:
+                    project_units.add(inner.lower())
+                    project_headers.append(h)
+
+    resolved_unit: str | None = None
+    if len(api_units) == 1:
+        resolved_unit = next(iter(api_units))
+    elif len(project_units) == 1:
+        resolved_unit = next(iter(project_units))
+    elif len(api_units | project_units) == 1:
+        resolved_unit = next(iter(api_units | project_units))
+
+    return {
+        "api_units": api_units,
+        "api_headers": api_headers,
+        "project_units": project_units,
+        "project_headers": project_headers,
+        "resolved_unit": resolved_unit,
+    }
+
+
+_VALID_API_ROLE_PREFIXES = {"app", "mdw", "hal", "svc", "bsp"}
+
+
+def _extract_api_unit(header_name: str) -> str | None:
+    """Extract unit identifier from an API header/class name."""
+    stem = Path(header_name).stem
+    if "_" in stem:
+        prefix, remainder = stem.split("_", 1)
+        if prefix.lower() in _VALID_API_ROLE_PREFIXES and remainder:
+            return remainder.lower()
+        return None
+    return stem.lower() if stem else None
+
+
+def detect_unit_name(
+    root_path: Path,
+    *,
+    header_extensions: set[str] = frozenset({".h"}),
+) -> str | None:
+    """Detect the unit identifier for any comsect1 unit (§8.6).
+
+    Sub-unit (api/ present): derived from api/<role>_<unit>.h (e.g. mdw_comm.h, app_demo.h)
+    Main project (no api/):  derived from project/config/cfg_project_<unit>.h
+
+    Returns None if unit cannot be determined (legacy project not yet migrated).
+    The *header_extensions* parameter controls which file extensions are scanned.
+    """
+    api_dir = root_path / "api"
+    if api_dir.is_dir():
+        for ext in sorted(header_extensions):
+            for h in sorted(api_dir.glob(f"*{ext}")):
+                stem = h.stem
+                if "_" in stem:
+                    return stem.split("_", 1)[1]
+                return stem
+        # api/ exists but no matching files — fall through to project/config anchor
+
+    project_config_dir = root_path / "project" / "config"
+    if project_config_dir.is_dir():
+        for ext in sorted(header_extensions):
+            for h in sorted(project_config_dir.glob(f"cfg_project_*{ext}")):
+                stem = h.stem  # e.g. "cfg_project_demo"
+                inner = stem[len("cfg_project_"):]
+                if inner:
+                    return inner
+    return None
+
+
+def stem_has_unit_suffix(stem: str, unit_name: str) -> bool:
+    """Return True if *stem* ends with ``_<unit_name>`` (case-insensitive)."""
+    return stem.lower().endswith(f"_{unit_name.lower()}")
+
+
+def requires_unit_qualification(
+    stem: str,
+    *,
+    is_under_any_bootstrap: bool,
+    is_under_any_project_features: bool,
+    is_under_any_project_config: bool,
+) -> bool:
+    """Return True if *stem* must carry the ``_<unit>`` suffix."""
+    stem_lower = stem.lower()
+    if not (
+        is_under_any_bootstrap
+        or is_under_any_project_features
+        or is_under_any_project_config
+    ):
+        return False
+    if stem_lower == "cfg_project" or stem_lower.startswith("cfg_project_"):
+        return True
+    return stem_lower.startswith(("ida_", "prx_", "poi_", "cfg_", "db_"))
+
+
 def verify_service_ownership_common(
     service_files: list[Path],
     internal_impl_files: list[Path],
