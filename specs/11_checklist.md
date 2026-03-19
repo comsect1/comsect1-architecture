@@ -17,9 +17,7 @@ Before considering architecture work complete, verify layer placement and depend
   evaluations, orchestration sequences, guard conditions) -- not merely
   forwarding calls
 - [ ] Idea is readable as requirements-level intent
-- [ ] Idea includes only `cfg_core.h` and own `prx_`/`poi_` headers
-- [ ] Idea does not include `cfg_`, `db_`, `stm_`, `mdw_`, `svc_`, `hal_`, `bsp_`
-- [ ] Idea does not include another feature's files
+- [ ] Idea self-containment verified (§4.1.2): only `cfg_core.h` and own `prx_`/`poi_`
 
 ---
 
@@ -74,41 +72,34 @@ For every file that touches external dependencies:
 
 ## 11.7 Dependency Direction Verification
 
-Allowed:
+Verify all include/import edges against the allowed sets and prohibited
+directions defined in **Section 5** (§5.1–§5.4).
 
-```
-IDA -> { own PRX, own POI }
-PRX -> { own POI, mdw_, svc_, hal_, cfg_, db_, stm_ }
-POI -> { mdw_, svc_, hal_, cfg_, db_, stm_ }
-HAL -> BSP
-```
-
-Interpretation:
-- `IDA -> { own PRX, own POI }` is an allowed dependency set.
-- IDA may use PRX only, POI only, or both as required.
-
-Prohibited:
-
-```
-PRX -> IDA
-POI -> IDA
-Feature A -> Feature B direct includes
-Platform -> Feature reverse includes
-```
+Key checks:
+- [ ] Allowed set (§5.2.1): IDA uses only own PRX/POI
+- [ ] Reverse dependency prohibition (§5.4): no PRX→IDA, no POI→IDA
+- [ ] Cross-feature prohibition (§5.2.2): no Feature A→Feature B direct includes
+- [ ] Platform direction (§5.4): no Platform→Feature reverse includes
 
 ---
 
 ## 11.8 Red Flags
 
-- [!] Anemic Idea: Idea is primarily forwarding calls with minimal domain
-  logic. If `ida_` is smaller than the corresponding `prx_`/`poi_`, this
-  is a red flag (Section 10.5)
-- [!] Praxis Scope Overflow: PRX decodes, decides, and dispatches —
-  only translation belongs in PRX; decisions belong in Idea (Section 10.6)
-- [!] Fat Praxis: PRX holds mostly mechanical wrappers
-- [!] Fat Poiesis: POI contains business or protocol interpretation logic
-- [!] Requirement changes modify only PRX/POI while Idea stays unchanged
-- [!] Cross-feature includes exist outside `stm_`
+| Red flag | Anti-pattern | Gate rule(s) |
+|----------|-------------|--------------|
+| Anemic Idea: ida_ primarily forwarding, smaller than prx_/poi_ | §10.5 | `layer-balance`, `red-flag-empty-idea` |
+| Praxis Scope Overflow: PRX decodes, decides, and dispatches | §10.6 | `red-flag-praxis-overflow`, `red-flag-fat-praxis` |
+| Fat Praxis: PRX holds mostly mechanical wrappers | §10.4 | `red-flag-fat-praxis` |
+| Fat Poiesis: POI contains business/protocol interpretation | §10.4 | `red-flag-fat-poiesis` |
+| Requirement changes modify only PRX/POI, Idea unchanged | §10.5 | (manual review) |
+| Cross-feature includes outside `stm_` | §10.7 | `cross-feature-layer-ref`, `ida.include` |
+
+Domain conditional detection is heuristic. The gate uses keyword pattern
+matching (`DOMAIN_CONDITIONAL_RE`) which may match hardware state checks
+(e.g., `HAL_STATE_IDLE`) in `poi_` files. Known hardware prefixes (`HAL_`,
+`BSP_`, `UART_`, `SPI_`, etc.) are automatically excluded. For remaining
+false positives, add the `GATE_MECHANICAL_CONDITIONAL` comment on the line
+to suppress detection.
 
 ---
 
@@ -181,6 +172,17 @@ For OOP projects, `Verify-OOPCode.py` additionally enforces:
 - Red Flag heuristics: Fat Praxis (§11.8, advisory)
 
 See `specs/A2_oop_adaptation.md` for full OOP adaptation rules.
+
+### Static Analysis Scope
+
+Gate scripts verify dependency direction and layer placement through static
+analysis of `#include`/`import` statements and file naming conventions.
+This scope does not cover runtime dependency paths: function-pointer
+callbacks, event dispatch tables, and observer registrations can create
+implicit coupling that static analysis cannot detect. Callback compliance
+rules (§4.0.5) govern these paths; manual review is required to verify
+them. When callback-heavy designs are used, document the registration
+flow so reviewers can trace the runtime dependency direction.
 
 ### Execution
 

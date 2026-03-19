@@ -65,9 +65,8 @@ not Praxis. See Section 4.1.3 PRX scope rule.
 1. **Idea is the contract subject**
    - Idea expresses complete intent; lower layers fulfill it.
 
-2. **Idea self-containment**
-   - Idea depends only on its own `prx_`/`poi_` and the Core Contract header (`cfg_core.h`).
-   - Idea does not access `mdw_`/`svc_`/`hal_`/`bsp_`/`cfg_`/`db_`/`stm_` directly.
+2. **Idea self-containment** (§4.1.2)
+   - Idea depends only on its own `prx_`/`poi_` and `cfg_core.h`. Full rules in §4.1.2.
 
 3. **Praxis and Poiesis split adaptation by nature**
    - Praxis: interpretation logic inseparable from external type/protocol shape.
@@ -144,25 +143,16 @@ This is independent from folder layout and domain taxonomy.
 
 ### 2.7.3 Dependency direction (summary)
 
-Read arrows as "depends on / may include / may import".
+The full dependency diagram, allowed sets, and all direction rules are
+defined in **Section 5** (§5.1–§5.4). Key invariants for quick reference:
 
-```
-IDA -> { own PRX, own POI }
-PRX -> { own POI, mdw_, svc_, hal_, cfg_, db_, stm_ }
-POI -> { mdw_, svc_, hal_, cfg_, db_, stm_ }
-Feature <-> Feature: stm_ only
-Platform: HAL -> BSP
-```
-
-Rules:
-- IDA connectivity contract is fixed as an **allowed dependency set**: `IDA -> { own PRX, own POI }`.
-- This does not require calling both edges; IDA may use PRX only, POI only, or both.
-- `ida_` must not include `cfg_`/`db_`/`stm_`/`mdw_`/`svc_`/`hal_`/`bsp_` directly.
-- `prx_`/`poi_` must not include another feature's `ida_`/`prx_`/`poi_` directly.
-- Inter-feature communication is datastream only (`stm_`).
-- `stm_` is the data plane; `mdw_`/`svc_`/`hal_`/`bsp_` form the capability plane.
-- Capability providers must not reverse-depend on feature `ida_`/`prx_`/`poi_`.
-  - **Exception**: The `/api/` entry point (`mdw_`) may include its own unit's `ida_core_` to implement the bootstrap entry point.
+- Dependency diagram and allowed sets: §5.1, §5.3
+- IDA allowed set — not mandatory dual call: §5.2.1
+- Idea self-containment prohibitions: §4.1.2
+- Cross-feature isolation (`stm_` only): §5.2.2
+- Prohibited directions (reverse, cross-feature, platform→feature): §5.4
+- Data plane (`stm_`) vs capability plane (`mdw_`/`svc_`/`hal_`/`bsp_`): §5.2.4
+- `/api/` entry point exception: §5.2.4
 
 ### 2.7.4 Resource prefixes (cfg_ / db_ / stm_) and core contract header
 
@@ -237,7 +227,7 @@ Architecture completeness includes:
 `ida_`/`prx_`/`poi_` classify policy and execution layers.
 Execution-facing boundaries are orthogonal:
 
-- **Data plane**: `stm_` for feature-to-feature runtime state/event flow
+- **Data plane**: `stm_` for feature-to-feature runtime state/event flow. Three communication models are supported: latest-value (Get/Set), notification (Set triggers observer callbacks), and queue (Enqueue/Dequeue with bounded buffer). See §4.2.4.5 for model definitions and selection criteria
 - **Capability plane**: `mdw_`, `svc_`, `hal_`, `bsp_`, core execution wrappers for resource/control operations
 
 Rules:
@@ -253,7 +243,14 @@ comsect1 rules are language-agnostic (Section 1.2). When applied to object-orien
 - `.c/.h` compilation unit → class in a single source file
 - `#include` dependency → `import`/`using`/`Imports` statement, constructor parameter, or interface reference
 - Function-pointer interface struct → interface or abstract class
-- File-scope `static` variables → instance state belongs in Praxis/Poiesis; Idea remains stateless
+- File-scope `static` variables → In C, `ida_` may own domain state via file-scope `static` variables (see §9.6). In OOP, mutable instance state belongs in Praxis/Poiesis; Idea must be immutable (see A2.5.1).
+  **Rationale**: This is a language accommodation, not a philosophical
+  divergence. C's `static` variables are confined to the compilation unit
+  — no external code can alias or observe them. The compilation unit is
+  the encapsulation boundary, achieving the same isolation that OOP
+  immutability guarantees through type-system enforcement. Both approaches
+  prevent Idea state from leaking across boundaries; the mechanism differs
+  because the language's encapsulation primitive differs
 
 For the complete OOP adaptation guide including layer-to-class mapping, OOP-specific anti-patterns, and gate verification requirements, see **Appendix B (A2)**.
 

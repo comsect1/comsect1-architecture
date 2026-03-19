@@ -42,7 +42,7 @@ For migration guidance, see `guides/02_Execution_Guides/EG_02_Refactoring_Legacy
 
 ## 3.2 Conceptual Model (Domain Boundaries)
 
-Domain dependency remains:
+Domain dependency direction:
 
 ```
 Project feature policies -> Infra capability
@@ -50,19 +50,8 @@ Infra capability -> { Platform subdomain, Dependency repository integrations }
 ```
 
 Architecture layers exist *within* project features and bootstrap core scope.
-
-```
-Bootstrap core: ida_core -> poi_core
-Feature: ida_ -> { prx_, poi_ }
-prx_ -> { poi_, mdw_, svc_, hal_, cfg_, db_, stm_ }
-poi_ -> { mdw_, svc_, hal_, cfg_, db_, stm_ }
-```
-
-Inter-feature communication remains datastream-only (`stm_`).
-
-Execution boundaries are orthogonal:
-- **Data plane**: `stm_` for feature-to-feature runtime state/event
-- **Capability plane**: `mdw_`/`svc_`/`hal_`/`bsp_` and core execution wrappers
+The full dependency diagram, allowed sets, and execution plane model are
+defined in **Section 5** (§5.1–§5.4).
 
 ---
 
@@ -86,50 +75,32 @@ For normative constraints:
 
 ## 3.4 Layer Relationship Inside a Feature
 
-### Idea (`ida_`)
-
-- Expresses business intent and decisions (WHAT/WHEN)
-- Calls only its own `prx_` and/or `poi_` interfaces
-- Does not include `cfg_`, `db_`, `stm_`, `mdw_`, `svc_`, `hal_`, or `bsp_` directly
-
-### Praxis (`prx_`)
-
-- Interprets external types/protocols when that interpretation has domain meaning
-- May call own `poi_`
-- May access `mdw_`, `svc_`, `hal_`, `cfg_`, `db_`, `stm_`
-
-### Poiesis (`poi_`)
-
-- Performs mechanical wrapping/bridging/forwarding
-- May access `mdw_`, `svc_`, `hal_`, `cfg_`, `db_`, `stm_`
-- Must not perform domain decision-making
-
-Illustrative example:
+Layer roles and constraints are defined in **Section 4**. Illustrative
+example (ida_ → poi_ direct, no prx_ needed):
 
 ```c
-/* ida_sensor.c */
+/* ida_sensor.c — Idea owns mode decision and duty computation */
 void Ida_Sensor_Run(void)
 {
+    uint8_t duty;
     if (target_mode == SENSOR_MODE_ECO) {
-        Prx_Sensor_InterpretAndApply(target_mode);
+        duty = 30U;   /* policy: eco brightness */
     } else {
-        Poi_Sensor_ApplyDuty(target_duty);
+        duty = 80U;   /* policy: normal brightness */
     }
+    Poi_Sensor_ApplyDuty(duty);
 }
 
-/* prx_sensor.c */
-Result_t Prx_Sensor_InterpretAndApply(SensorMode_t mode)
-{
-    uint8_t duty = (mode == SENSOR_MODE_ECO) ? db_sensor_eco_duty : db_sensor_normal_duty;
-    return Poi_Sensor_ApplyDuty(duty);
-}
-
-/* poi_sensor.c */
+/* poi_sensor.c — Poiesis: mechanical HAL wrapper */
 Result_t Poi_Sensor_ApplyDuty(uint8_t duty)
 {
     return Hal_Pwm_SetDuty(SENSOR_PWM_CHANNEL, duty);
 }
 ```
+
+For a full IDA → PRX → POI example with Praxis translation, see §9.1.
+For the substantive Idea pattern (state machine + policy + orchestration),
+see §9.6.
 
 ---
 

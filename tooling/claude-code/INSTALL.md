@@ -15,14 +15,13 @@
         ~/.claude/
           rules/comsect1.md
           skills/comsect1-refactor/SKILL.md
-          skills/comsect1-director/SKILL.md
-          skills/comsect1-execute/SKILL.md
+          skills/comsect1-refactor/scripts/run-gates.sh
+          skills/comsect1-new-project/SKILL.md
           agents/comsect1-structure/AGENT.md
           agents/comsect1-layer/AGENT.md
           agents/comsect1-risk/AGENT.md
           agents/comsect1-verify/AGENT.md
           agents/comsect1-reviewer/AGENT.md
-          skills/comsect1-analyze/SKILL.md
         ```
 
         ## Install
@@ -47,9 +46,12 @@ python scripts/comsect1_ai_tooling.py install --tool claude-code
 
 Default use:
 
-- use `comsect1-refactor` for normal end-to-end work
-- use `comsect1-analyze` only when you want analysis/reporting without refactoring
+- use `comsect1-refactor` for normal end-to-end work (includes analysis)
+- use `comsect1-new-project` to scaffold a new IAR embedded C project
 - use `comsect1-reviewer` only when you want findings-only review
+
+The installer removes older skills (`comsect1-analyze`, `comsect1-director`,
+`comsect1-execute`) as analysis is now built into `comsect1-refactor`.
 
         ## Verify
 
@@ -57,8 +59,7 @@ Default use:
 
         1. `comsect1.md` is loaded
         2. `/comsect1-refactor` is available
-        3. `/comsect1-analyze` is available
-        4. `comsect1-reviewer` is available
+        3. `comsect1-reviewer` is available
 
         Internal pack files may exist as provider implementation detail and do
         not need to appear as separate user-facing commands.

@@ -14,7 +14,6 @@
         ```text
         $CODEX_HOME/skills/
           comsect1-refactor/
-          comsect1-analyze/
           comsect1-review/
 
         <target-project>/
@@ -66,29 +65,26 @@
         Confirm:
 
         1. Codex lists `comsect1-refactor`
-        2. Codex lists `comsect1-analyze`
-        3. Codex lists `comsect1-review`
-        4. the target project has a thin `AGENTS.md`
+        2. Codex lists `comsect1-review`
+        3. the target project has a thin `AGENTS.md`
 
 Restart Codex after installing skills so new skills are picked up.
 In Codex, these are skills invoked with `$...`, not slash commands.
 Check the `$` skill picker after a full Codex restart.
 
-The installer also removes older pack-level Codex skills such as
-`comsect1-director` and `comsect1-layer` so the visible top-level command set
-stays minimal.
+The installer removes older skills such as `comsect1-analyze`,
+`comsect1-director`, and `comsect1-layer` so the visible top-level command set
+stays minimal. Analysis is now built into `comsect1-refactor`.
 
 Default use:
 
-- use `comsect1-refactor` for normal end-to-end work
-- use `comsect1-analyze` only when you want analysis/reporting without refactoring
+- use `comsect1-refactor` for normal end-to-end work (includes analysis)
 - use `comsect1-review` only when you want findings-only review
 
         Explicit invocation examples:
 
         ```text
         $comsect1-refactor refactor codes/comsect1 end-to-end.
-        $comsect1-analyze analyze codes/comsect1 against the comsect1 architecture rules.
         $comsect1-review review this change for comsect1 compliance.
         ```
 

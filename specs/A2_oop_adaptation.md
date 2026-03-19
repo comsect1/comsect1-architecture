@@ -129,24 +129,17 @@ In OOP, this applies to all forms of dependency expression:
 
 Each is a dependency edge. Dependency direction rules (Section 2.7.3) govern all of them.
 
-### A2.3.2 Direction Rules Restated for OOP
+### A2.3.2 Direction Rules in OOP
 
-The allowed dependency set from Section 2.7.3, expressed in OOP terms:
+The allowed dependency sets and prohibited directions from **§5.1–§5.4**
+apply without modification. In OOP, each dependency edge manifests as
+`import`/`using`/`Imports`, constructor parameter, method parameter,
+generic constraint, or interface implementation.
 
-```
-ida_ → { own prx_, own poi_ }           (call / reference)
-prx_ → { own poi_, mdw_, svc_, hal_,
-          cfg_, db_, stm_ }              (import / inject)
-poi_ → { mdw_, svc_, hal_,
-          cfg_, db_, stm_ }              (import / inject)
-Feature ↔ Feature: stm_ only            (shared state / event)
-```
-
-**Prohibited:**
-- `prx_` or `poi_` importing or referencing any `ida_` class
-- Any layer of Feature A importing `ida_`/`prx_`/`poi_` of Feature B
-- `ida_` importing `cfg_`/`db_`/`stm_`/`mdw_`/`svc_`/`hal_`/`bsp_`
-- Capability providers (`mdw_`, `svc_`) referencing feature layer classes
+OOP-specific interpretation of each edge type:
+- `ida_ → prx_/poi_`: call or reference (composition, not inheritance)
+- `prx_/poi_ → capability/resource`: import or inject
+- Feature ↔ Feature: `stm_` shared state containers only (§5.2.2)
 
 ### A2.3.3 Dependency Injection and Direction
 
@@ -240,9 +233,11 @@ Satisfying only self-containment (no external imports) while allowing mutable st
 
 **Recommendation**: Prefer stateless static methods (form a) as the default. Use form (b) only when decision context must be carried across method calls within the same Idea class.
 
+**C accommodation**: In C, `ida_` may own domain state via file-scope `static` variables (§2.7.9, §9.6). This is not a relaxation of purity — C's compilation-unit encapsulation prevents external aliasing, achieving the same boundary isolation that OOP immutability enforces through the type system.
+
 ### A2.5.2 Shared Domain Utilities
 
-OOP encourages reusable classes. When pure domain logic is needed by multiple features, the feature isolation rule (Section 2.7.3: `Feature ↔ Feature: stm_ only`) creates apparent friction. This is resolved by correct classification, not by relaxing the rule.
+OOP encourages reusable classes. When pure domain logic is needed by multiple features, the feature isolation rule (§5.2.2) creates apparent friction. This is resolved by correct classification, not by relaxing the rule.
 
 Shared pure logic is not a feature's Idea layer — it is a **shared resource** or **capability service**. The C specification already provides `svc_` for this purpose (Section 5.1 example: `prx_sensor.c` includes `svc_math.h`).
 
@@ -485,6 +480,59 @@ The AIAD gate (Section 1.3, Section 11) must verify OOP-specific rules:
 | `poi_` file with complex domain conditionals | Possible PRX/POI role collapse | Manual review recommended |
 | `ida_` class with feature resource access | Possible self-containment violation (Section 1.6.2) | Manual review recommended |
 | `ida_` class with mutable instance fields | Possible purity violation (Section 2.7.9) | Manual review recommended |
+
+---
+
+## A2.9 Error Handling in OOP
+
+Section 6 defines error handling for C. This section maps those rules to OOP.
+
+### A2.9.1 Exception vs Result Pattern
+
+OOP languages provide exceptions. comsect1 does not mandate one pattern over
+the other, but the layer boundary rules apply:
+
+| Pattern | When to use |
+|---------|-------------|
+| `Result_t` return | Cross-layer boundaries, API contracts, infrastructure wrappers |
+| Exceptions | Language-idiomatic internal flow within a single layer |
+
+Rule: Layer boundary methods (the methods that `ida_` calls on `prx_`/`poi_`)
+should return explicit status. Internal helper methods within a layer may use
+exceptions if the language convention favors them.
+
+### A2.9.2 Exception Ownership by Layer
+
+| Layer | Exception responsibility |
+|-------|------------------------|
+| `poi_` | Catch infrastructure exceptions, translate to `Result_t` or domain exception |
+| `prx_` | Catch external-type exceptions during translation, translate to domain form |
+| `ida_` | Decide recovery strategy: retry, fallback, safe-state, or fatal |
+
+Rule: Lower layers report; Idea decides. This is unchanged from S6.3.
+
+### A2.9.3 Try/Catch at Layer Boundaries
+
+`poi_` and `prx_` must not let infrastructure exceptions propagate to `ida_`
+uncaught. Idea should never need to catch `IOException`, `SerialPortException`,
+or framework-specific exceptions.
+
+Correct:
+- `poi_` catches `IOException` -> returns `RESULT_FAIL`
+- `ida_` checks `RESULT_FAIL` -> decides retry or fallback
+
+Wrong:
+- `ida_` catches `IOException` -> Idea is now coupled to I/O infrastructure
+
+### A2.9.4 Fatal Handler in OOP
+
+The fatal handler pattern (S6.4, Appendix A) maps to OOP as an application-level
+unhandled exception handler or a static fatal method in the core contract scope.
+
+The handler must:
+- log context (source, message, stack trace)
+- transition to a safe state
+- not attempt recovery
 
 ---
 

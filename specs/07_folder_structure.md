@@ -256,6 +256,59 @@ repo itself. This confuses the consumer project view with the standalone repo vi
 
 ---
 
+## 7.11 Build System Integration Rules
+
+The folder structure (S7.3-S7.10) implies build system configuration.
+This section makes the build-side requirements explicit.
+
+### 7.11.1 Include Path Rules
+
+Build systems must configure include paths so that `#include` statements
+match the canonical role-prefix naming:
+
+- `/comsect1/api/` -- public API headers
+- `/comsect1/infra/bootstrap/` -- core contract and bootstrap headers
+- `/comsect1/project/config/` -- project configuration headers
+- `/comsect1/project/features/<feature>/` -- feature-local headers
+- `/comsect1/infra/service/` -- service headers
+- `/comsect1/infra/platform/hal/` and `.../bsp/` -- platform headers
+- `/comsect1/deps/middleware/<name>/api/` -- installed middleware API
+
+Include paths must not flatten the entire tree into one search path.
+Each domain should be a separate include path entry so that accidental
+cross-domain includes fail at build time.
+
+### 7.11.2 Source List Organization
+
+Source lists should be organized by domain, not by file type:
+
+```cmake
+# CMake example
+set(BOOTSTRAP_SRCS
+    ${COMSECT1}/infra/bootstrap/ida_core_${UNIT}.c
+    ${COMSECT1}/infra/bootstrap/poi_core_${UNIT}.c
+)
+set(FEATURE_SRCS
+    ${COMSECT1}/project/features/sensor/ida_sensor_${UNIT}.c
+    ${COMSECT1}/project/features/sensor/poi_sensor_${UNIT}.c
+)
+```
+
+### 7.11.3 Platform Build Evidence
+
+Build files at the repository root that contain MCU/BSP conditional
+branches, BSP include paths, BSP target links, or dummy fallback paths
+are platform build evidence. The gate (`platform.misplaced.build`)
+verifies that such evidence aligns with `/infra/platform/` implementation.
+
+Rules:
+- Legacy platform paths (`platform/`, `port/`, `ports/`) in build files
+  are flagged as misplaced.
+- Platform build wiring without corresponding `/infra/platform/hal` or
+  `/infra/platform/bsp` implementation is flagged.
+
+---
+
 ## License
 
 This document is part of the **comsect1 Architecture Specification v1.0.0**.

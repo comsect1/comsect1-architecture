@@ -481,6 +481,7 @@ def run(root: Path, extensions: set[str], report_path: Path | None) -> int:
     verify_red_flags_common(
         ida_files, prx_files, poi_files, findings,
         count_lines=count_code_lines,
+        extract_feature=extract_feature_name,
     )
     verify_red_flags_oop(ida_files, findings)
 

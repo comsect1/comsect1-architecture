@@ -12,7 +12,7 @@ Anti-patterns show what breaks when layer boundaries are violated.
 
 ## 10.1 Idea Directly Accessing Modules
 
-**Violation:** Idea self-containment.
+**Violation:** Idea self-containment. **Gate rules:** `ida.include`, `ida_core.include`.
 
 ```c
 /* ida_display.c */
@@ -27,7 +27,7 @@ Impact:
 
 ## 10.2 Idea Accessing Feature Resources Directly
 
-**Violation:** resource encapsulation.
+**Violation:** resource encapsulation. **Gate rules:** `ida.include`, `red-flag-ida-feature-resource` (OOP).
 
 ```c
 #include "cfg_sensor.h"  /* forbidden in ida_ */
@@ -42,7 +42,7 @@ Impact:
 
 ## 10.3 Praxis or Poiesis Calling Idea (Reverse Dependency)
 
-**Violation:** dependency direction.
+**Violation:** dependency direction. **Gate rules:** `prx.include`, `poi.include` (C); `prx_no-idea-ref`, `poi_no-idea-ref` (OOP).
 
 ```c
 /* prx_button.c */
@@ -57,7 +57,7 @@ Impact:
 
 ## 10.4 PRX/POI Role Collapse
 
-**Violation:** layer role clarity.
+**Violation:** layer role clarity. **Gate rules:** `red-flag-fat-praxis`, `red-flag-fat-poiesis`.
 
 Patterns:
 - `prx_` file contains mostly mechanical wrappers (must be `poi_`)
@@ -69,7 +69,7 @@ Use the 3-question discriminator (Section 2.3).
 
 ## 10.5 Anemic Idea (Idea as Thin Wrapper)
 
-**Violation:** Idea is the contract subject (Section 1.6.1).
+**Violation:** Idea is the contract subject (Section 1.6.1). **Gate rules:** `layer-balance` (error), `red-flag-empty-idea` (warning).
 
 **Symptom:** `ida_` file consists primarily of:
 - one-line forwarding calls to `prx_`/`poi_`
@@ -108,7 +108,7 @@ the largest layer.
 
 ## 10.6 Praxis Scope Overflow
 
-**Violation:** Praxis scope rule (Section 4.1.3).
+**Violation:** Praxis scope rule (Section 4.1.3). **Gate rules:** `red-flag-praxis-overflow`, `red-flag-fat-praxis`.
 
 **Symptom:** `prx_` file not only interprets external types but also decides
 what to do with the interpreted data — dispatching commands, evaluating
@@ -158,6 +158,31 @@ void Ida_Comm_Main(void)
 }
 ```
 
+**Additional wrong pattern** (subtle variant):
+
+```c
+/* prx_display.c -- WRONG: prx_ owns db lookup and poi_ dispatch */
+Result_t Prx_Display_GetPendingCommand(DisplayCommand_t* out)
+{
+    const CommFrame_t* frame = Stm_CommRx_Get();
+    out->enable = ((frame->data[2] & 0x01U) != 0U);
+    out->level = db_display_level_map[frame->data[3] & 0x0FU];  /* domain decision */
+    return RESULT_OK;
+}
+
+Result_t Prx_Display_ApplyCommand(const DisplayCommand_t* cmd)
+{
+    return Poi_Display_WritePwm(cmd->level);  /* dispatch: belongs in ida_ */
+}
+```
+
+This variant appears less obvious because the db lookup seems like
+"interpretation," but `db_display_level_map` is a domain policy table —
+the mapping from raw index to brightness level is a business decision,
+not an external type translation. The correct split: `prx_` returns
+`raw_level` (the decoded byte); `ida_` applies the level map and
+dispatches to `poi_`. See §9.1 for the corrected version.
+
 **Diagnostic:** If `prx_` is larger than `ida_`, Praxis Scope Overflow is
 likely. This anti-pattern and Anemic Idea (Section 10.5) are
 complementary: one causes the other.
@@ -166,7 +191,7 @@ complementary: one causes the other.
 
 ## 10.7 Cross-feature Direct Include
 
-**Violation:** feature isolation.
+**Violation:** feature isolation. **Gate rules:** `cross-feature-layer-ref` (OOP); C gate detects via `ida.include`, `prx.include`, `poi.include`.
 
 ```c
 #include "features/sensor/prx_sensor.h"  /* forbidden */
@@ -183,7 +208,7 @@ Correct pattern:
 
 ## 10.8 Resource Files Including Layer Headers
 
-**Violation:** reverse dependency from data to logic.
+**Violation:** reverse dependency from data to logic. **Gate rule:** `resource.include`.
 
 ```c
 /* db_xxx.h */
@@ -196,7 +221,7 @@ Resources must remain pure data.
 
 ## 10.9 Core Execution Layer Including HAL/BSP
 
-**Violation:** core purity.
+**Violation:** core purity. **Gate rule:** `poi_core.include`.
 
 Core execution (`poi_core` by default) must not include HAL/BSP directly when platform init belongs to feature-owned initialization.
 
@@ -204,7 +229,7 @@ Core execution (`poi_core` by default) must not include HAL/BSP directly when pl
 
 ## 10.10 Platform Evidence Outside Platform
 
-**Violation:** semantic placement.
+**Violation:** semantic placement. **Gate rule:** `platform.misplaced`.
 
 Non-platform files directly include vendor/device/BSP/CMSIS headers or use raw
 platform primitives.
@@ -221,7 +246,7 @@ into `bsp_`.
 
 ## 10.11 HAL/BSP Mixed Responsibility
 
-**Violation:** platform role collapse.
+**Violation:** platform role collapse. **Gate rule:** `red-flag-hal-bsp-mixed`.
 
 One file simultaneously owns peripheral abstraction and board-specific wiring.
 

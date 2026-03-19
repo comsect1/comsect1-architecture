@@ -30,6 +30,16 @@ DOMAIN_CONDITIONAL_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Mechanical context: hardware-prefix conditionals that look like domain
+# conditionals but are actually mechanical state checks in poi_ files.
+# Subtract these from domain conditional counts to reduce false positives.
+MECHANICAL_CONTEXT_RE = re.compile(
+    r"\b(?:HAL|BSP|UART|SPI|I2C|GPIO|ADC|DMA|TIM|IRQ|NVIC)_",
+)
+
+# Line-level suppression comment for mechanical conditional false positives.
+GATE_MECHANICAL_SUPPRESSION = "GATE_MECHANICAL_CONDITIONAL"
+
 # Detect Poi_ functions whose body is a single pass-through call to a Prx_ function.
 # Matches: ReturnType Poi_Name(args) { [return] Prx_Name(args); }
 # Excludes nested braces (complex bodies won't match).
@@ -253,9 +263,19 @@ def verify_layer_balance(
                 text = pf.read_text(encoding="utf-8", errors="replace")
                 hits = DOMAIN_CONDITIONAL_RE.findall(text)
                 if hits:
-                    fat_poi_file = pf
-                    fat_poi_hits = len(hits)
-                    break
+                    # Exclude mechanical context hits (HAL/BSP state
+                    # checks) and suppressed lines from the count.
+                    effective = 0
+                    for line in text.splitlines():
+                        if GATE_MECHANICAL_SUPPRESSION in line:
+                            continue
+                        if DOMAIN_CONDITIONAL_RE.search(line):
+                            if not MECHANICAL_CONTEXT_RE.search(line):
+                                effective += 1
+                    if effective > 0:
+                        fat_poi_file = pf
+                        fat_poi_hits = effective
+                        break
             except OSError:
                 continue
 
@@ -283,8 +303,9 @@ def verify_red_flags_common(
     findings: list[dict[str, object]],
     *,
     count_lines: Callable[[Path], int],
+    extract_feature: Callable[[Path], str | None] | None = None,
 ) -> None:
-    """Three universal Red Flag checks: Empty Idea, Fat Poiesis, Fat Praxis.
+    """Universal Red Flag checks: Empty Idea, Fat Poiesis, Fat Praxis, Praxis Scope Overflow.
 
     Language-specific red flags (e.g. OOP mutable-field check) are NOT
     included here -- each gate script adds its own extras after calling this.
@@ -306,12 +327,23 @@ def verify_red_flags_common(
             text = f.read_text(encoding="utf-8", errors="replace")
             hits = DOMAIN_CONDITIONAL_RE.findall(text)
             if hits:
-                add_finding(
-                    findings, "warning", f, 0, "red-flag-fat-poiesis",
-                    f"Possible Fat Poiesis: poi_ contains {len(hits)} "
-                    "domain-meaningful conditional(s). "
-                    "Consider moving business logic to ida_ or prx_.",
-                )
+                # Subtract mechanical context hits (HAL/BSP/peripheral
+                # state checks) and lines with suppression comments to
+                # reduce false positives in hardware-facing poi_ files.
+                effective = 0
+                for line in text.splitlines():
+                    if GATE_MECHANICAL_SUPPRESSION in line:
+                        continue
+                    if DOMAIN_CONDITIONAL_RE.search(line):
+                        if not MECHANICAL_CONTEXT_RE.search(line):
+                            effective += 1
+                if effective > 0:
+                    add_finding(
+                        findings, "warning", f, 0, "red-flag-fat-poiesis",
+                        f"Possible Fat Poiesis: poi_ contains {effective} "
+                        "domain-meaningful conditional(s). "
+                        "Consider moving business logic to ida_ or prx_.",
+                    )
         except OSError:
             pass
 
@@ -356,6 +388,40 @@ def verify_red_flags_common(
                 )
         except OSError:
             pass
+
+    # Red Flag: Praxis Scope Overflow (§10.6)
+    # When prx_ code lines exceed ida_ code lines for the same feature,
+    # post-translation logic may have leaked into Praxis.
+    if extract_feature is not None:
+        features: dict[str, dict[str, list[Path]]] = {}
+        for f in ida_files:
+            feat = extract_feature(f)
+            if feat:
+                key = feat.lower()
+                features.setdefault(key, {"idea": [], "praxis": []})
+                features[key]["idea"].append(f)
+        for f in prx_files:
+            feat = extract_feature(f)
+            if feat:
+                key = feat.lower()
+                features.setdefault(key, {"idea": [], "praxis": []})
+                features[key]["praxis"].append(f)
+
+        for _feat, roles in features.items():
+            if not roles["idea"] or not roles["praxis"]:
+                continue
+            ida_total = sum(count_lines(f) for f in roles["idea"])
+            prx_total = sum(count_lines(f) for f in roles["praxis"])
+            if prx_total > ida_total:
+                for prx_file in roles["praxis"]:
+                    add_finding(
+                        findings, "warning", prx_file, 0,
+                        "red-flag-praxis-overflow",
+                        f"Possible Praxis Scope Overflow: prx_ ({prx_total} "
+                        f"code lines) is larger than ida_ ({ida_total} code "
+                        "lines). Review whether post-translation logic in "
+                        "prx_ belongs in ida_ (\u00a710.6).",
+                    )
 
 
 def verify_service_ownership_common(

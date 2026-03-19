@@ -222,6 +222,95 @@ def main() -> int:
                         f"Broken cross-reference '§{ref}': specs/{spec_file.name}:{line_no}",
                     )
 
+    # -----------------------------------------------------------------------
+    # SSOT restatement detection: warn when a normative rule is fully
+    # restated outside its designated Single Source of Truth file.
+    # -----------------------------------------------------------------------
+
+    # Each entry: rule-id -> (ssot filename, compiled regex pattern)
+    # The pattern matches FULL restatements, not brief "see §X" references.
+    _ssot_rules: list[tuple[str, str, re.Pattern[str]]] = [
+        (
+            "dep-direction",
+            "05_dependency_rules.md",
+            re.compile(
+                r"IDA\s*->\s*\{\s*own\s+PRX\s*,\s*own\s+POI\s*\}",
+            ),
+        ),
+        (
+            "ida-self-contain",
+            "04_layer_roles.md",
+            re.compile(
+                r"[Ii]dea\s+(?:must\s+not|does\s+not|cannot)\s+(?:include|access|depend\s+on|import)"
+                r".*(?:mdw_|svc_|hal_|bsp_)",
+            ),
+        ),
+        (
+            "feature-isolation",
+            "05_dependency_rules.md",
+            re.compile(
+                r"[Ff]eature\s*(?:<->|↔|\sto\s)\s*[Ff]eature.*stm_\s*only",
+            ),
+        ),
+        (
+            "hal-bsp-direction",
+            "05_dependency_rules.md",
+            re.compile(
+                r"(?:^|\s)HAL\s*->\s*BSP(?:\s|$)",
+            ),
+        ),
+        (
+            "cross-feature-prohibition",
+            "05_dependency_rules.md",
+            re.compile(
+                r"(?:prx_|poi_).*must\s+not\s+include\s+(?:another|other)\s+feature",
+                re.IGNORECASE,
+            ),
+        ),
+    ]
+
+    # Files that are exempt from restatement warnings:
+    # - 09_code_examples.md: illustrative, non-normative
+    # - 12_version_history.md: historical record (low priority, warn anyway
+    #   for full restatements but we can suppress later if needed)
+    _ssot_exempt_files: set[str] = {"09_code_examples.md"}
+
+    # Rules whose signatures commonly appear inside code-block diagrams
+    # and should still be checked there.
+    _ssot_check_in_code_blocks: set[str] = {
+        "dep-direction",
+        "hal-bsp-direction",
+        "feature-isolation",
+    }
+
+    ssot_warnings: list[str] = []
+    for spec_file in spec_files:
+        if spec_file.name in _ssot_exempt_files:
+            continue
+        text = get_file_text_utf8(spec_file)
+        in_code_block = False
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            stripped = line.strip()
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            for rule_id, ssot_file, pattern in _ssot_rules:
+                if in_code_block and rule_id not in _ssot_check_in_code_blocks:
+                    continue
+                if spec_file.name == ssot_file:
+                    continue  # this IS the SSOT file
+                if pattern.search(line):
+                    ssot_warnings.append(
+                        f"SSOT restatement: specs/{spec_file.name}:{line_no} -- "
+                        f"rule '{rule_id}' restated outside SSOT "
+                        f"(canonical: specs/{ssot_file})"
+                    )
+
+    if ssot_warnings:
+        print(f"\nSSOT restatement warnings: {len(ssot_warnings)}")
+        for w in ssot_warnings:
+            print(f"  (advisory) {w}")
+
     # Lightweight README hygiene checks
     if readme_path.is_file():
         readme = get_file_text_utf8(readme_path)

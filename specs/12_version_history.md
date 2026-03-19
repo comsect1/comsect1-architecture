@@ -8,6 +8,19 @@
 
 ### Normative additions
 
+- **stm_ Communication Models** (Section 4.2.4.5): defines three valid
+  datastream communication models — latest-value, notification, and queue.
+  All remain data-plane, statically allocated, prx_/poi_ access only.
+- **mdw_/svc_ boundary clarification** (Section 4.2.2): distinguishes
+  integration state (mdw_) from computational state (svc_).
+- **C/OOP Idea state rationale** (Section 2.7.9, A2.5.1): explains why
+  C `static` and OOP immutability achieve the same encapsulation goal
+  through different language primitives.
+- **Gate mechanical exclusion** (Section 11.8): domain conditional
+  detection now excludes known hardware prefixes and supports
+  `GATE_MECHANICAL_CONDITIONAL` line-level suppression.
+- **Static analysis scope note** (Section 11.11): documents that gate
+  scripts do not cover runtime dependency paths (callbacks, event dispatch).
 - **Standard Packages** (Section 14): introduces canonical example
   packages (comsect1-std, comsect1-mdw-os, comsect1-mdw-storage_manager).
   Usage is not required for architecture compliance.
@@ -43,6 +56,10 @@
 
 ### Guides and tooling
 
+- `DP_04_Capability_Classification.md`: mdw_/svc_ 2-question discriminator.
+- `EG_10_Feature_Scaling.md`: communication model selection, multi-producer
+  arbitration, and feature grouping for 30+ feature projects.
+- Notification and queue code examples added to Section 9.3.
 - Analysis, review, setup, migration, and verification guides updated.
 - Gate scripts: deps/ exclusion, app_ recognition, unit-qualified naming
   enforcement, folder structure verification, layer balance check.
@@ -66,16 +83,13 @@
   - `/infra/service/`, `/infra/platform/`
   - `/deps/extern/`, `/deps/middleware/`
   - `/infra/platform/`: HAL/BSP
-- **Dependency Rules**:
-  - `IDA -> { own PRX, own POI }`
-  - `PRX -> { own POI, mdw_, svc_, hal_, cfg_, db_, stm_ }`
-  - `POI -> { mdw_, svc_, hal_, cfg_, db_, stm_ }`
+- **Dependency Rules** (see §5 for full specification):
+  - Dependency direction, allowed sets, execution plane model
   - Inter-feature communication via `stm_` only
 - **Infra concept clarification**:
   - `infra` defined as shared capability fabric (orthogonal to `ida_`/`prx_`/`poi_`)
-  - data plane (`stm_`) and capability plane (`mdw_`/`svc_`/`hal_`/`bsp_`/core execution) explicitly separated
-  - `IDA -> { own PRX, own POI }` interpreted as allowed dependency set, not mandatory dual call
-  - only listed role prefixes are valid; visibility is achieved by folder grouping and verification
+  - data plane / capability plane separation (§5.2.4)
+  - only listed role prefixes are valid (§8.5)
 
 ### Why PRX/POI split was restored before first release
 

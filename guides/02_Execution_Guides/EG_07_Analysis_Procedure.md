@@ -37,6 +37,27 @@ Phase 2. Warnings are informational, not blockers.
 
 ---
 
+## Quantitative-then-qualitative rule
+
+Quantitative metrics (line counts, file counts, ratios, gate advisory
+counts) generate questions. Only reading the actual code generates answers.
+
+Rules:
+
+- Do not draw architectural conclusions from quantitative data alone.
+- Every quantitative finding that informs a conclusion MUST be followed by
+  qualitative verification: read the relevant source files and confirm or
+  refute the quantitative signal.
+- When reporting a quantitative metric (e.g. "prx_ 1323 lines > ida_ 688
+  lines"), state it as a question ("does domain logic leak into prx_?"),
+  not as a conclusion ("prx_ is overweight").
+- The conclusion comes from reading the code, not from the numbers.
+
+This rule applies to all analysis steps (Phase 1 and Phase 2), to gate
+advisory interpretation, and to any summary or verdict.
+
+---
+
 ## Spec section lookup (Phase 1 use)
 
 When the gate reports errors, read only the spec section(s) needed to explain

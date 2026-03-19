@@ -266,7 +266,13 @@ Orthogonal note:
 
 ### 4.2.2 MIDDLEWARE
 
-Middleware contains reusable integration/stateful logic.
+Middleware contains reusable integration/stateful logic. The distinguishing
+characteristic of middleware is **integration state**: persistent state that
+coordinates interaction between multiple consumers or manages a shared
+resource lifecycle (e.g., scheduler task tables, communication session
+tracking, storage transaction management). If a module's state exists only
+to support its own computation and is not visible to consumers, the module
+is a service (`svc_`), not middleware.
 
 Rules:
 - consumed by `prx_`/`poi_`, not `ida_`
@@ -288,6 +294,36 @@ Documentation:
 Lifecycle:
 - when a feature that consumes a `svc_` is modified or removed, the `svc_` MUST be reviewed for consolidation or removal within the same work session
 
+#### 4.2.3.1 Valid Service Criteria
+
+A `svc_` module is valid when it:
+- wraps a genuine infrastructure mechanism (`mdw_`, `hal_`) with reusable computation or transform logic
+- provides domain-independent computation consumed by multiple features
+- owns its computation -- public functions contain logic, not just delegation
+
+#### 4.2.3.2 Service Anti-Patterns
+
+| Pattern | Gate rule | Description |
+|---------|-----------|-------------|
+| **Facade service** | `service.file-facade` | All public functions are thin pass-through delegates. The file adds a membrane without owned capability. |
+| **Non-owner delegate** | `service.public-nonservice-delegate` | Public `Svc_` function delegates directly to a non-service owner (e.g., `Prx_`, `Poi_`, `Lin*`). |
+| **Backend bounce** | `service.public-backend-bounce` | Public `Svc_` function is a one-hop wrapper around an exported backend symbol. |
+| **Misclassified registry** | `service.misclassified-registry` | Module is primarily register/dispatch code with no transform logic. May belong in `mdw_` or core execution wrapper. |
+| **Infra orphan** | `service.infra-orphan` | Small module with no `mdw_`/`hal_` dependency. May be a datastream (`stm_`) in disguise. |
+| **Internal public bounce** | `service.internal-public-bounce` | Internal implementation files call public LIN API (`l_ifc_*`, `ld_*`) instead of using internal interfaces. |
+
+#### 4.2.3.3 Service Justification
+
+Before creating a `svc_` file, verify:
+- [ ] The module wraps an infrastructure mechanism OR provides reusable computation
+- [ ] Public functions contain owned logic, not just single-call delegation
+- [ ] The responsibility is not better classified as `mdw_` (stateful integration) or `stm_` (cross-feature data)
+
+Add `SVC_MECHANISM_JUSTIFICATION` as a comment in the `.c` or `.h` file to suppress the `service.infra-orphan` heuristic when the module is intentionally infrastructure-free.
+
+For the detailed mdw_/svc_ boundary decision guide, see
+`guides/01_Design_Principles/DP_04_Capability_Classification.md`.
+
 ### 4.2.4 DATASTREAM (`stm_`, Data Plane)
 
 Datastream is neutral cross-feature runtime state.
@@ -298,6 +334,62 @@ Rules:
 - no ownership by any single feature
 
 Datastream is the **data plane**, orthogonal to infra capability APIs.
+
+#### 4.2.4.1 Datastream API Pattern
+
+Recommended `stm_` header pattern for C:
+
+```c
+/* stm_<name>.h */
+#include "cfg_core.h"
+
+/* Write access (producer) */
+void Stm_<Name>_Set(const <Type>* value);
+
+/* Read access (consumer) */
+const <Type>* Stm_<Name>_Get(void);
+```
+
+#### 4.2.4.2 Producer/Consumer Rules
+
+- Any `prx_`/`poi_` may be a producer or consumer of a datastream.
+- `ida_` must not access `stm_` directly (Section 4.1.2).
+- A datastream has no single owner feature. It is a shared data-plane resource.
+- Multiple producers writing to the same datastream must use an explicit arbitration mechanism.
+
+#### 4.2.4.3 Lifecycle
+
+- Datastream state is initialized at system startup (typically in `poi_core` or a dedicated init feature).
+- Datastream definitions are statically allocated. Dynamic creation is not part of the normative model.
+- When a feature that produces to or consumes from a `stm_` is removed, review whether the `stm_` is still needed.
+
+#### 4.2.4.4 Naming
+
+- `stm_<domain>.h` for the header
+- `Stm_<Domain>_Get()` / `Stm_<Domain>_Set()` for access functions
+- The domain name describes the data, not the producing feature (e.g., `stm_temperature.h`, not `stm_sensor_output.h`).
+
+#### 4.2.4.5 Communication Models
+
+Datastreams support three valid communication models. All three remain
+data-plane resources: accessed only by `prx_`/`poi_`, statically allocated,
+and feature-ownership-neutral.
+
+| Model | API pattern | Semantics |
+|-------|------------|-----------|
+| **Latest-value** | `Stm_<Name>_Set()` / `Stm_<Name>_Get()` | Producer overwrites; consumer reads most recent value. No history. This is the default model (§4.2.4.1). |
+| **Notification** | `Stm_<Name>_Set()` triggers registered callbacks | Producer writes a value; the datastream invokes a list of registered observer callbacks. Observers are registered at init time via `Stm_<Name>_RegisterObserver()`. Callbacks must be non-blocking. |
+| **Queue** | `Stm_<Name>_Enqueue()` / `Stm_<Name>_Dequeue()` | Producer enqueues; consumer dequeues in FIFO order. Buffer is bounded and statically allocated. Overflow policy (drop-oldest or reject) is defined per queue at compile time. |
+
+Selection criteria:
+- Use **latest-value** when consumers only need the current state (most common).
+- Use **notification** when consumers must react to every state change without polling.
+- Use **queue** when every produced value must be consumed and ordering matters.
+
+All three models follow the same rules as §4.2.4.2 (producer/consumer
+access), §4.2.4.3 (lifecycle), and §4.2.4.4 (naming). For model selection
+guidance in larger projects, see
+`guides/02_Execution_Guides/EG_10_Feature_Scaling.md`.
 
 ---
 

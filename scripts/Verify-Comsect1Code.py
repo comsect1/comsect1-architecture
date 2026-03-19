@@ -944,6 +944,7 @@ def main() -> int:
     verify_red_flags_common(
         ida_files, prx_files, poi_files, findings,
         count_lines=count_code_lines,
+        extract_feature=get_feature_from_path,
     )
     verify_service_ownership_common(
         service_files, internal_impl_files, findings,
