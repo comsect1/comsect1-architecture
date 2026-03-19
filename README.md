@@ -1,6 +1,6 @@
 # comsect1 Architecture
 
-[![Spec Version](https://img.shields.io/badge/spec-v1.0.0-blue)]()
+[![Spec Version](https://img.shields.io/badge/spec-v1.0.1-blue)]()
 [![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/Specs-CC_BY--NC--ND_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 [![License: MIT](https://img.shields.io/badge/Scripts-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -157,6 +157,7 @@ A task that fails the gate is not complete.
 | 11. Checklist | [specs/11_checklist.md](./specs/11_checklist.md) |
 | 12. History | [specs/12_version_history.md](./specs/12_version_history.md) |
 | 13. Middleware | [specs/13_middleware_guideline.md](./specs/13_middleware_guideline.md) |
+| 14. Standard Packages | [specs/14_standard_packages.md](./specs/14_standard_packages.md) |
 | Appendix A1 | [specs/A1_exception_handling.md](./specs/A1_exception_handling.md) |
 | Appendix A2 | [specs/A2_oop_adaptation.md](./specs/A2_oop_adaptation.md) |
 
@@ -172,4 +173,4 @@ A task that fails the gate is not complete.
 ---
 
 **Author:** Kim Hyeongjeong (Republic of Korea)  
-**Version:** 1.0.0
+**Version:** 1.0.1

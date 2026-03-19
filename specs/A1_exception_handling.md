@@ -109,7 +109,7 @@ void Ida_Sensor_Init(void)
 
 ## License
 
-This document is part of the **comsect1 Architecture Specification v1.0.0**.
+This document is part of the **comsect1 Architecture Specification v1.0.1**.
 
 **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)**
 
