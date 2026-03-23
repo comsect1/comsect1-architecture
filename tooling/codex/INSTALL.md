@@ -25,8 +25,8 @@
         ## Install Skills
 
         ```bash
-        git clone <comsect1-architecture-repo>
-        cd comsect1-architecture
+        git clone <comsect1-doc-architecture-repo>
+        cd comsect1-doc-architecture
         bash tooling/codex/install.sh
         ```
 

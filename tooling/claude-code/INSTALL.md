@@ -27,8 +27,8 @@
         ## Install
 
         ```bash
-        git clone <comsect1-architecture-repo>
-        cd comsect1-architecture
+        git clone <comsect1-doc-architecture-repo>
+        cd comsect1-doc-architecture
         bash tooling/claude-code/install.sh
         ```
 

@@ -214,7 +214,7 @@ machine validation.
 
 ### 8.1 Canonical Spec Repository
 
-When the current repository is `comsect1-architecture` itself:
+When the current repository is `comsect1-doc-architecture` itself:
 
 - Treat `specs/`, `guides/`, `scripts/`, and `tooling/` as the product.
 - Run at least the spec gate after editing normative documents or tooling that

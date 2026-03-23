@@ -21,7 +21,7 @@ The unified runner `Verify-AIADGate.py` auto-detects the project type and activa
 
 ## 2. Gate Script Configuration
 
-### 2.1 Spec-Only Project (e.g., comsect1-architecture repo)
+### 2.1 Spec-Only Project (e.g., comsect1-doc-architecture repo)
 
 ```bash
 # Spec + tooling verification only (code/OOP stages auto-skip)
@@ -91,7 +91,7 @@ Each project should have a `CLAUDE.md` at its root. Below are minimal templates 
 
 This project follows the comsect1 architecture specification.
 
-- Spec reference: [comsect1-architecture repo path or URL]
+- Spec reference: [comsect1-doc-architecture repo path or URL]
 - Architecture variant: C/embedded
 - Idea layer purity: stateless (no mutable static state in ida_)
 
@@ -116,7 +116,7 @@ python scripts/Verify-AIADGate.py -CodeRoot codes/comsect1
 
 This project follows the comsect1 architecture specification with OOP adaptation (Appendix B).
 
-- Spec reference: [comsect1-architecture repo path or URL]
+- Spec reference: [comsect1-doc-architecture repo path or URL]
 - Architecture variant: OOP (C#)
 - Idea layer purity: immutable + referentially transparent
 - Praxis: optional, high justification bar
@@ -182,7 +182,7 @@ Session context
 
 ### Cross-Project Considerations
 
-- Gate scripts live in the spec repo (`comsect1-architecture/scripts/`), not in each project.
+- Gate scripts live in the spec repo (`comsect1-doc-architecture/scripts/`), not in each project.
 - Projects reference gate scripts by path: `python <spec-repo>/scripts/Verify-AIADGate.py -CodeRoot <project-root>`
 - If a project copies gate scripts locally, it must keep them in sync with the spec repo version.
 - Gate enforcement is configured via CLAUDE.md Golden Rule and Global Rules — no hook required.
@@ -191,7 +191,7 @@ Session context
 
 ## 5. Adding Gate Scripts to a New Project
 
-1. Ensure the comsect1-architecture spec repo is accessible from the project.
+1. Ensure the comsect1-doc-architecture spec repo is accessible from the project.
 2. Create a `CLAUDE.md` using the appropriate template above.
 3. Run the unified gate once to generate the initial report:
    ```bash

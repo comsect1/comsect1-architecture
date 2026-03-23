@@ -866,8 +866,8 @@ def _render_codex_install_doc() -> str:
         ## Install Skills
 
         ```bash
-        git clone <comsect1-architecture-repo>
-        cd comsect1-architecture
+        git clone <comsect1-doc-architecture-repo>
+        cd comsect1-doc-architecture
         bash tooling/codex/install.sh
         ```
 
@@ -975,8 +975,8 @@ def _render_claude_install_doc() -> str:
         ## Install
 
         ```bash
-        git clone <comsect1-architecture-repo>
-        cd comsect1-architecture
+        git clone <comsect1-doc-architecture-repo>
+        cd comsect1-doc-architecture
         bash tooling/claude-code/install.sh
         ```
 
