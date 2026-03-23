@@ -22,7 +22,10 @@ __pycache__/
 # Local agent settings
 .claude/
 
-# Gate reports (generated per-run)
+# Analysis Reports (regenerable)
+.comsect1-analysis-report.md
+.comsect1-analysis.md
 .aiad-gate-report.json
+aiad-code-verify.json
 tmp_code_verify_check.json
 
